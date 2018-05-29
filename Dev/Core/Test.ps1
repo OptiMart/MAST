@@ -35,3 +35,6 @@ $MASTCore.LoadDictionary("de",$MASTDictionaryDE)
 $MASTCore.LoadDictionary("en",$MASTDictionaryEN)
 
 $MASTCore.Translator.SetLanguage("es-es")
+
+#Remove BOM
+#($a -replace "^$([convert]::ToChar(65279))" , "")[0]

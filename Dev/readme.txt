@@ -1,8 +1,5 @@
 Ordnerstruktur
 
-.\PS-Func_Info.csv
-  -> Diese Datei wird manuell erzeugt und beinhaltet Informationen über alle ladbaren Funktionen
-
 .\Libs\
   -> Ordner mit allgemeinen Modulen und Funktionen (*.psm1, *.ps1)
      So allgemein wie möglich gehalten um dann in verschiedenen Szenarien benutzt werden zu können
@@ -20,6 +17,3 @@ Ordnerstruktur
 
 .\Core\
   -> Ordner mit allen Kern-Dateien für den MAST-Loader
-
-.\Logs\
-  - Ordner für Log-Files

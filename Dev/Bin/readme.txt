@@ -4,9 +4,7 @@ Um auf diese von anderen Programmen zu verweisen.
 Z.B. kann in der GPP "Skript ausführen (Start-Herunterfahren)" nur eine Tatsächliche Skriptdatei ausgewählt werden
 
 Beispiel (Einbinden Dot-Sourcing und direktes Ausführen):
-  . (Join-Path $MASTPath.Liv.Lib "PS-Func_Send-MailEfkoGroup.ps1")
-  Send-MailEfkoGroup -Subject "Achtung"
+  . (Join-Path $MASTPath.Liv.Lib "PS-Func_Test-MS17-010.ps1")
+  Test-MS17-010.ps1
 
-  Diese Datei kann dann direkt ausgeführt werden und schickt eine Mail mit den Standardwerten und dem Betreff "Achtung"
-
-Beispiel
+  Diese Datei kann dann direkt ausgeführt werden und Testet die auf die Schwachstelle MS17-010

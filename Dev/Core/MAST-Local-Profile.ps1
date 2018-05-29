@@ -1,6 +1,6 @@
 ﻿<#
 .NOTES
-    Name: PS-Local-Profile.ps1 
+    Name: MAST-Local-Profile.ps1 
     Autor: Martin Strobl
     Version History:
     2.0 - 31.08.2017 - Trennung von Lokaler profile.ps1 Datei und Loader-Datei
@@ -21,104 +21,122 @@
 #>
 
 #region ################################### ----- Basisvariablen definieren ----- #############################################
-$TempMASTProfilePathOnline = "\\efko.local\ItEfGrDfs\Scripts"        ## Der Rootpath für die Powershellverwaltung
-$TempMASTProfilePathLocal = "C:\efko\Powershell"                     ## Der Pfad zur Lokalen Livekopie
-## Laden aus Registry
 
-## Defaultumgebung ist "Live"
-$MASTEnviron = "Live"
+    $TempMASTProfilePathOnline = "\\ServerName\Share\ScriptRoot"         ## Der Rootpath für die Powershellverwaltung
+    $TempMASTProfilePathLocal = Join-Path $env:HOMEDRIVE "MAST"          ## Der Pfad zur Lokalen Livekopie
+    ## Laden aus Registry
 
-## Beliebige kriterien um zur Dev-Umgebung mittels 3Sek PopUp zu wechseln
-[bool] $TempMASTDevPopUp = ($env:USERNAME -match "viatstma")
+    New-Variable -Name MASTConstLive -Value "Live" -Option Constant
+    New-Variable -Name MASTConstDev -Value "Dev" -Option Constant
+    New-Variable -Name MASTConstAllUsersAllHosts -Value "AllUsersAllHosts" -Option Constant
+    New-Variable -Name MASTConstAllUsersCurrentHost -Value "AllUsersCurrentHost" -Option Constant
+    New-Variable -Name MASTConstCurrentUserAllHosts -Value "CurrentUserAllHosts" -Option Constant
+    New-Variable -Name MASTConstCurrentUserCurrentHost -Value "CurrentUserCurrentHost" -Option Constant
+    New-Variable -Name MASTConstRemoteProfile -Value "RemoteProfile" -Option Constant
 
-## Beliebige kriterien um immer zur Dev-Umgebung zu wechseln
-[bool] $TempMASTDev = ($false)
+    ## Defaultumgebung ist "Live"
+    $MASTEnviron = "Live"
 
-if ($TempMASTDevPopUp) {
-    $TempMASTPopup = new-object -comobject wscript.shell
-    if ($TempMASTPopup.popup("Laden der Dev-Umgebung?",3,"Dev",4) -eq 6) {
-        $TempMASTDev = $true
+    ## Beliebige kriterien um zur Dev-Umgebung mittels 3Sek PopUp zu wechseln
+    [bool] $TempMASTDevPopUp = ($env:USERNAME -match "MyUser")
+
+    ## Beliebige kriterien um immer zur Dev-Umgebung zu wechseln
+    [bool] $TempMASTDev = ($false)
+
+    if ($TempMASTDevPopUp) {
+        $TempMASTPopup = new-object -comobject wscript.shell
+        if ($TempMASTPopup.popup("Laden der Dev-Umgebung?",3,"Dev",4) -eq 6) {
+            $TempMASTDev = $true
+        }
     }
-}
 
-if ($TempMASTDev) {
-    $MASTEnviron = "Dev"
-}
+    if ($TempMASTDev) {
+        $MASTEnviron = "Dev"
+    }
+
 #endregion
 
 #region ###################################### ----- Check Profile-Scope ----- ################################################
-switch ($MyInvocation.MyCommand.Path) {
-    "$($profile.AllUsersAllHosts)" { $TempMASTProfileScope = "AllUsersAllHosts" }
-    "$($profile.AllUsersCurrentHost)" { $TempMASTProfileScope = "AllUsersCurrentHost" }
-    "$($profile.CurrentUserAllHosts)" { $TempMASTProfileScope = "CurrentUserAllHosts" }
-    "$($profile.CurrentUserCurrentHost)" { $TempMASTProfileScope = "CurrentUserCurrentHost" }
-    default { 
-        if ( -not $profile -and $Host.Name -match "Remote" ) {
-            $TempMASTProfileScope = "RemoteProfile"
-        }
-        else {
-            if ($MASTEnviron -eq "Dev") {
-                $TempMASTProfileScope = "Development"
+
+    switch ($MyInvocation.MyCommand.Path) {
+        "$($profile.AllUsersAllHosts)" { $TempMASTProfileScope = "AllUsersAllHosts" }
+        "$($profile.AllUsersCurrentHost)" { $TempMASTProfileScope = "AllUsersCurrentHost" }
+        "$($profile.CurrentUserAllHosts)" { $TempMASTProfileScope = "CurrentUserAllHosts" }
+        "$($profile.CurrentUserCurrentHost)" { $TempMASTProfileScope = "CurrentUserCurrentHost" }
+        default { 
+            if ( -not $profile -and $Host.Name -match "Remote" ) {
+                $TempMASTProfileScope = "RemoteProfile"
             }
             else {
-                $TempMASTProfileScope = "n.A."
+                if ($MASTEnviron -eq "Dev") {
+                    $TempMASTProfileScope = "Development"
+                }
+                else {
+                    $TempMASTProfileScope = "n.A."
+                }
+                Write-Warning "Die Profildatei wird von einem ungültigen Pfad aus gestartet"
             }
-            Write-Warning "Die Profildatei wird von einem ungültigen Pfad aus gestartet"
         }
     }
-}
+
 #endregion
 
 #region ############################## ----- Check ob Online- oder Offlinebetrieb ----- #######################################
-if (Test-Path -Path (Join-Path $TempMASTProfilePathOnline $MASTEnviron)) {
-    $MASTIsOnline = $true
-    $MASTBasePath = $TempMASTProfilePathOnline
-}
-elseif (Test-Path -Path (Join-Path $TempMASTProfilePathLocal $MASTEnviron)) {
-    Write-Host "   !!! Es besteht keine Verbindung zur Zentralen Skriptverwaltung - lade Offlinekopie !!!   " -BackgroundColor Cyan -ForegroundColor Black
-    $MASTIsOnline = $false
-    $MASTBasePath = $TempMASTProfilePathLocal
-}
-else {
-    ## Wenn auch noch keine Offlinekopie besteht muss abgebrochen werden
-    Write-Host "   !!! Es besteht keine Verbindung zur Zentralen Skriptverwaltung - Es konnte keine Offlinekopie gefunden werden !!!   " -BackgroundColor Red -ForegroundColor Yellow
-    break
-}
+
+    if (Test-Path -Path (Join-Path $TempMASTProfilePathOnline $MASTEnviron)) {
+        $MASTIsOnline = $true
+        $MASTBasePath = $TempMASTProfilePathOnline
+    }
+    elseif (Test-Path -Path (Join-Path $TempMASTProfilePathLocal $MASTEnviron)) {
+        Write-Host "   !!! Es besteht keine Verbindung zur Zentralen Skriptverwaltung - lade Offlinekopie !!!   " -BackgroundColor Cyan -ForegroundColor Black
+        $MASTIsOnline = $false
+        $MASTBasePath = $TempMASTProfilePathLocal
+    }
+    else {
+        ## Wenn auch noch keine Offlinekopie besteht muss abgebrochen werden
+        Write-Host "   !!! Es besteht keine Verbindung zur Zentralen Skriptverwaltung - Es konnte keine Offlinekopie gefunden werden !!!   " -BackgroundColor Red -ForegroundColor Yellow
+        break
+    }
+
 #endregion
 
 #region ######################################### ----- Starte Loader ----- ###################################################
-if ($MASTEnviron -eq "Dev" -or $TempMASTProfileScope -eq "Development") {
-    $TempMASTLoader = "Core\MAST-Core_Loader_PSv5.ps1"
-}
-else {
-    switch ($PSVersionTable.PSVersion) {
-        ## Check welche PS Version um den Loader anzupassen
-        #{$_ -ge [version]"5.1"} {$TempMASTLoader = "Core\MAST-Core_Loader_PSv5_1.ps1"; break} ## geplant den MAST-Loader als Klasse zu implementieren
-        {$_ -ge [version]"4.0"} {$TempMASTLoader = "Core\MAST-Core_Loader_PSv4.ps1"; break}
-        {$_ -ge [version]"2.0"} {$TempMASTLoader = "Core\MAST-Core_Loader_PSv2.ps1"; break}
-        ## Unter Powershell Version 2.0 wird nicht geladen
-        default {$TempMASTLoader = ""; break}
-    }
-}
 
-## Einbinden des Loaders
-if ($TempMASTLoader) {
-    if (Test-Path -Path (Join-Path (Join-Path $MASTBasePath $MASTEnviron) $TempMASTLoader)) {
-        . (Join-Path (Join-Path $MASTBasePath $MASTEnviron) $TempMASTLoader)
+    if ($MASTEnviron -eq "Dev" -or $TempMASTProfileScope -eq "Development") {
+        $TempMASTLoader = "Core\MAST-Core_Loader_PSv5.ps1"
     }
     else {
-        Write-Host "   !!! Der Loader konnte nicht unter ($(Join-Path (Join-Path $MASTBasePath $MASTEnviron) $TempMASTLoader)) gefunden werden !!!   " -BackgroundColor Red -ForegroundColor Yellow
+        switch ($PSVersionTable.PSVersion) {
+            ## Check welche PS Version um den Loader anzupassen
+            #{$_ -ge [version]"5.1"} {$TempMASTLoader = "Core\MAST-Core_Loader_PSv5_1.ps1"; break} ## geplant den MAST-Loader als Klasse zu implementieren
+            {$_ -ge [version]"4.0"} {$TempMASTLoader = "Core\MAST-Core_Loader_PSv4.ps1"; break}
+            {$_ -ge [version]"2.0"} {$TempMASTLoader = "Core\MAST-Core_Loader_PSv2.ps1"; break}
+            ## Unter Powershell Version 2.0 wird nicht geladen
+            default {$TempMASTLoader = ""; break}
+        }
     }
-}
-else {
-    Write-Host "   !!! Es konnte kein Loader ermittelt werden !!!   " -BackgroundColor Red -ForegroundColor Yellow
-}
+
+    ## Einbinden des Loaders
+    if ($TempMASTLoader) {
+        if (Test-Path -Path (Join-Path (Join-Path $MASTBasePath $MASTEnviron) $TempMASTLoader)) {
+            . (Join-Path (Join-Path $MASTBasePath $MASTEnviron) $TempMASTLoader)
+        }
+        else {
+            Write-Host "   !!! Der Loader konnte nicht unter ($(Join-Path (Join-Path $MASTBasePath $MASTEnviron) $TempMASTLoader)) gefunden werden !!!   " -BackgroundColor Red -ForegroundColor Yellow
+        }
+    }
+    else {
+        Write-Host "   !!! Es konnte kein Loader ermittelt werden !!!   " -BackgroundColor Red -ForegroundColor Yellow
+    }
+
 #endregion
 
 #region ########################################### ----- Aufräumen ----- #####################################################
 
-## Progressbar abschließen, alle Temp-Variablen löschen und eine abschließende Leerzeile anfügen
-Write-Progress -Activity "*" -Completed
-Remove-Variable "TempMAST*"
-Write-Host
+    ## Progressbar abschließen, alle Temp-Variablen löschen und eine abschließende Leerzeile anfügen
+    
+    Write-Progress -Activity "*" -Completed
+    Remove-Variable "TempMAST*"
+    Write-Host
+
 #endregion
