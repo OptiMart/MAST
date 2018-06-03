@@ -28,7 +28,7 @@ param([switch] $Force)
 
 #region ----------------------------------------------- Name der Variable -----------------------------------------------------
 
-    $TempVarName = "MASTProfileFilter8"
+    $TempVarName = "MASTProfileFilter"
     
     Write-Verbose "Lade Variable $TempVarName - Force: $Force"
 
@@ -51,52 +51,59 @@ if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or
     $TempVarValue = @(
         @{
             InitName = "Core"
-            InitHead = "  ---  Lade   Kern   Skripte  ---  "
+            InitHead = "  ---  Loading Core Scripts      ---  "
             InitIncl = "MAST-CoreFunc_*.ps1"
             InitScope = @("Core")
             InitFile = @()
+            InitPath = @()
         },
         @{
             InitName = "Global"
-            InitHead = "  ---  Lade Standard Skripte  ---  Efko-Konzern  "
+            InitHead = "  ---  Loading Default Scripts   ---  "
             InitIncl = "PS_global_*.ps1"
             InitScope = @("AllUsersAllHosts","CurrentUserAllHosts")
             InitFile = @()
+            InitPath = @()
         },
         @{
             InitName = "Standort"
-            InitHead = "  ---  Lade Standort Skripte  ---  $($MASTPath.Site)  "
+            InitHead = "  ---  Loading Site Scripts      ---  $($MASTPath.Site)  "
             InitIncl = "PS_$($MASTPath.Site)_*.ps1"
             InitScope = @("AllUsersAllHosts","CurrentUserAllHosts")
             InitFile = @()
+            InitPath = @()
         },
         @{
             InitName = "Gruppen"
-            InitHead = "  ---  Lade Gruppen  Skripte  ---  $("$(try{"$((Get-ItemProperty -Path $MASTPath.HKCU -ErrorAction Ignore).Gruppen);$((Get-ItemProperty -Path $MASTPath.HKLM -ErrorAction Ignore).Gruppen)"}catch{})" -Split(";") -Split(",") | %{$_.trim(" ")})  "
+            InitHead = "  ---  Loading Group Scripts     ---  $("$(try{"$((Get-ItemProperty -Path $MASTPath.HKCU -ErrorAction Ignore).Gruppen);$((Get-ItemProperty -Path $MASTPath.HKLM -ErrorAction Ignore).Gruppen)"}catch{})" -Split(";") -Split(",") | %{$_.trim(" ")})  "
             InitIncl = @("$(try{"$((Get-ItemProperty -Path $MASTPath.HKCU -ErrorAction Ignore).Gruppen);$((Get-ItemProperty -Path $MASTPath.HKLM -ErrorAction Ignore).Gruppen)"}catch{})" -Split(";") -Split(",") | %{ if ($_.Trim(" ") -gt 0) {"PS_$($_.Trim(" "))_*.ps1"} else {"---"} })
             InitScope = @("AllUsersAllHosts","CurrentUserAllHosts")
             InitFile = @()
+            InitPath = @()
         },
         @{
             InitName = "Computer"
-            InitHead = "  ---  Lade Computer Skripte  ---  $env:COMPUTERNAME  "
+            InitHead = "  ---  Loading Computer Scripts  ---  $env:COMPUTERNAME  "
             InitIncl = "PS_$($env:COMPUTERNAME)_*.ps1"
             InitScope = @("AllUsersAllHosts","CurrentUserAllHosts")
             InitFile = @()
+            InitPath = @()
         },
         @{
             InitName = "Benutzer"
-            InitHead = "  ---  Lade Benutzer Skripte  ---  $env:USERNAME  "
+            InitHead = "  ---  Loading User Scripts      ---  $env:USERNAME  "
             InitIncl = "PS_$($env:USERNAME)_*.ps1"
             InitScope = @("AllUsersAllHosts","CurrentUserAllHosts")
             InitFile = @()
+            InitPath = @()
         },
         @{
             InitName = "Remote"
-            InitHead = "  ---  Lade  Remote  Skripte  ---  "
+            InitHead = "  ---  Loading Remote Scripts    ---  "
             InitIncl = "PS_remote_*.ps1"
             InitScope = @("RemoteProfile","n.A.")
             InitFile = @()
+            InitPath = @()
         }
     ) | % { New-Object psobject -Property $_ }
 
