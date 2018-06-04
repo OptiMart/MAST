@@ -1,5 +1,10 @@
 ﻿#Requires -Version 5.0
 
+## The Name of the Loader-Function kann be set to the $MASTLoaderFunction
+## if its different to the default value "Start-MASTLoader"
+## to be correctly called from the profile.ps1
+#Set-Variable -Name MASTLoaderFunction -Value "Start-MASTLoader" -Force
+
 function Start-MASTLoader
 {
     <#
@@ -40,12 +45,25 @@ function Start-MASTLoader
     [CmdletBinding(DefaultParameterSetName = 'LoadSilent',
                    HelpUri = '')]
     Param(
-    
+        # Rootpath to MAST-Repository
+        [Parameter()]
+        [Alias("TempMASTBasePath")]
+        [string]
+        $MASTBasePath = "$($PSScriptRoot | Split-Path -Parent | Split-Path -Parent)",
+
+        [Parameter()]
+        [Alias("ProfileScope","Scope","TempMASTProfileScope")]
+        [string]
+        $MASTProfileScope,
+
+        [Parameter(Position=0)]
+        [Alias("TempMASTEnviron","Environment")]
+        [string]
+        $MASTEnviron
     )
     Begin
     {
         #region ################################# ----- Versionsinformationen festlegen ----- #########################################
-        
         [string] $TempMASTLoaderName = "$($MyInvocation.MyCommand)"
         [uint32] $TempMASTLoaderVerMajor = 2
         [uint32] $TempMASTLoaderVerMinor = 1
@@ -103,13 +121,13 @@ function Start-MASTLoader
         Write-Progress -Activity $TempMASTLoaderName -Status "Initialisiere Variablen" -CurrentOperation '$MASTPath' -PercentComplete 12
         . (Join-Path $PSScriptRoot "MAST-CoreData_Path.ps1")
 
-        if ($MASTPath.Online -ne $TempMASTProfilePathOnline) {
+        if ($MASTPath.Online -ne $TempMASTPath.Online) {
             Write-Warning "Die Pfadvariable zur Online-Umgebung ist nicht konsistent"
-            $MASTPath.Online = $TempMASTProfilePathOnline
+            $MASTPath.Online = $TempMASTPath.Online
         }
-        if ($MASTPath.Local -ne $TempMASTProfilePathLocal) {
+        if ($MASTPath.Local -ne $TempMASTPath.Local) {
             Write-Warning "Die Pfadvariable zur Lokalen Umgebung ist nicht konsistent"
-            $MASTPath.Local = $TempMASTProfilePathLocal
+            $MASTPath.Local = $TempMASTPath.Local
         }
 
         ## Laden der Profilfiltervariable $MASTProfileFilter
@@ -118,10 +136,10 @@ function Start-MASTLoader
 
         ## Skriptvariablen als allgemeine PS-Variablen übernehmen
         $MASTLoaderVersion = $TempMASTLoaderVersion
-        $MASTProfileScope = $TempMASTProfileScope
+        #$MASTProfileScope = $TempMASTProfileScope
 
         if (-not(Get-Variable MASTUserFunctions -ErrorAction SilentlyContinue)) {
-            $MASTUserFunctions = @()                                     ## Array um alle geladenen Funktionen zu sammeln
+            New-Variable MASTUserFunctions -Scope global -Value @()      ## Array um alle geladenen Funktionen zu sammeln
         }
 
         $MASTAdminHelp = $false                                          ## Schalter um die Hilfsfunktionen und Infos zu aktivieren
@@ -134,14 +152,14 @@ function Start-MASTLoader
         #region ############################# ----- Starte robocopy des aktuellen LiveEnv ----- #######################################
         Write-Progress -Activity $TempMASTLoaderName -Status "Starte Copy-Job" -PercentComplete 20
 
-        if ($MASTIsOnline -and $TempMASTProfileScope -match "AllUsersAllHosts" -and $MASTPath.Local) {
+        <#if ($MASTIsOnline -and $TempMASTProfileScope -match "AllUsersAllHosts" -and $MASTPath.Local) {
             ## ToDo, Berechtigungsthemen überprüfen
     
             Start-Job -Name CopyLive -ArgumentList (Join-Path $MASTPath.Online "Live"), (Join-Path $MASTPath.Local "Live") -ScriptBlock {
                 param($source, $destination)
                 robocopy $source $destination /MIR
             } | Out-Null
-        }
+        }#>
         #endregion
 
         #region ############ ----- Laden der Profil-Filter und verarbeiten der zugeordneten Include-Dateien ----- #####################
@@ -202,7 +220,7 @@ function Start-MASTLoader
                     Select-Object Name,Verb,Noun,@{
                         Name="Source";
                         Expression={
-                            if ($TempMASTFile.BaseName -match "^MAST-CoreFunc_") {"Kernfunktion"}
+                            if ($TempMASTFile.BaseName -match "^MAST-CoreFunc_") {"Corefunction"}
                             else {"$($TempMASTFile.BaseName)"}}}
             }
         }

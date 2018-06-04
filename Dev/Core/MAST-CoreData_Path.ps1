@@ -10,18 +10,26 @@
 #>
 
 [CmdletBinding()]
-param([switch] $Force)
+param(
+    # Name of the Path-Variable leave blank for default ($MASTPath)
+    [Parameter()]
+    [string]
+    $VarName = "MASTPath",
 
-#region ----------------------------------------------- Name der Variable -----------------------------------------------------
+    # The Path to the MAST-Root leave Blank for default (..\..\)
+    [Parameter()]
+    [string]
+    $MASTBasePath = "$($PSScriptRoot | Split-Path -Parent | Split-Path -Parent)",
 
-    $TempVarName = "MASTPath"
-    
-    Write-Verbose "Lade Variable $TempVarName - Force: $Force"
+    # Switch to Force relaod of the Variable
+    [switch] $Force
+)
 
-#endregion -------------------------------------------- Name der Variable -----------------------------------------------------
+Write-Verbose "Lade Variable $VarName - Force: $Force"
+
 
 ## Aus Performacegründen werden diese Variablen nur einmalig erzeugt
-if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or $Force) {
+if((Get-Variable -Name $VarName -ErrorAction SilentlyContinue) -eq $null -or $Force) {
 
 #region -------------------------------------------- Parameter der Variable ---------------------------------------------------
 
@@ -38,14 +46,16 @@ if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or
     
     $TempVarValue = New-Object psobject -Property @{
         Base = $MASTBasePath
-        Online = "\\efko.local\ItEfGrDfs\Scripts"  ## Der Root-Pfad zur Onlineumgebung (wird im Loader aktualisiert)
-        Local = "C:\efko\Powershell"               ## Der Root-Pfad zur Offlineumgebung (wird im Loader aktualisiert)
-        HKLM = "HKLM:\Software\efko\PS"            ## Der Registrypfad zu den Computer Settings
-        HKCU = "HKCU:\Software\efko\PS"            ## Der Registrypfad zu den User Settings
-        Logs = "$(Join-Path $MASTBasePath "Logs")" ## Der Pfad zu den Logdateien
-        Site = "$(try{                             ## Der Standortname laut Activedirectory
+        Online = "\\ServerName\Share\ScriptRoot"      ## Der Root-Pfad zur Onlineumgebung (wird im Loader aktualisiert)
+        Local = "$(Join-Path $env:HOMEDRIVE "MAST")"  ## Der Root-Pfad zur Offlineumgebung (wird im Loader aktualisiert)
+        HKLM = "HKLM:\Software\MAST"                  ## Der Registrypfad zu den Computer Settings
+        HKCU = "HKCU:\Software\MAST"                  ## Der Registrypfad zu den User Settings
+        Logs = "$(Join-Path $MASTBasePath "Logs")"    ## Der Pfad zu den Logdateien
+        Site = "$(try{                                ## Der Standortname laut Activedirectory
                     $($([System.DirectoryServices.ActiveDirectory.ActiveDirectorySite]::GetComputerSite()).Name)
-                }catch{"offline"})"
+                }catch [System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException]{
+                    "no_Site"}
+                catch {"disconnected"})"
     }
 
     ## Unterordner auf Ebene 1
@@ -83,12 +93,12 @@ if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or
 
     try {
         ## Anlegen der gewünschten Variable
-        Set-Variable -Name $TempVarName -Value $TempVarValue -Scope $TempVarScope -Option $TempVarOption -Description $TempVarDescription -Visibility $TempVarVisibility -Force:($Force -eq $true) -ErrorAction Stop
+        Set-Variable -Name $VarName -Value $TempVarValue -Scope $TempVarScope -Option $TempVarOption -Description $TempVarDescription -Visibility $TempVarVisibility -Force:($Force -eq $true) -ErrorAction Stop
         Write-Verbose " - laden erfolgreich"
     }
     catch {
         Write-Verbose " - Fehler"
-        Write-Warning "Die Variable $TempVarName konnte nicht erzeugt werden. $($Error[0].Exception.Message)"
+        Write-Warning "Die Variable $VarName konnte nicht erzeugt werden. $($Error[0].Exception.Message)"
     }
 }
 else {

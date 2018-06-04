@@ -74,7 +74,7 @@ Param(
                ParameterSetName='Development')]
     [Alias("Dev","Develope","Development")]
     [switch]
-    $TempMASTDev = $true
+    $TempMASTDev
 )
 Begin
 {
@@ -83,7 +83,7 @@ Begin
     $TempMASTTimer += @{Name="Start";Time=Get-Date}
 
     ## Conditions for 3 sec PopUp to load Dev
-    [bool] $TempMASTDevPopup = ($env:USERNAME -match "MyUser")
+    [bool] $TempMASTDevPopup = ($env:USERNAME -match "Auriok")
 
     #region ######## ----- Declare Constants ----- #############################
 
@@ -97,6 +97,11 @@ Begin
     New-Variable -Name MASTConstDev -Value "Dev" -Option ReadOnly -Force
 
     New-Variable -Name MASTLoaderFunction -Value "Start-MASTLoader" -Description "Name of the LoaderFunction" -Force
+
+    if ((Get-Variable MASTProfileScope -ErrorAction SilentlyContinue) -eq $null)
+    {
+        New-Variable -Name MASTProfileScope -Value @()
+    }
 
     #endregion ##### ----- Declare Constants ----- #############################
 
@@ -215,11 +220,11 @@ Begin
         }
     }
 
-    function Get-MASTLiveDevEnviron
+    function Get-MASTEnvironment
     {
         <#
         .SYNOPSIS
-            Returns if use Dev or Live Environment for MAST
+            Returns if use Dev or Live Environment for MAST can be enhanced for more Environments
         #>
         [CmdletBinding()]
         Param(
@@ -255,35 +260,6 @@ Begin
         {
             ## Return ProfileScope
             Write-Output $ReturnEnv
-        }
-    }
-
-    function Get-MASTBasePath
-    {
-        <#
-        .SYNOPSIS
-            Returns the Path to MAST-Root
-        #>
-        [CmdletBinding()]
-        Param(
-            # Paths in Registry, last write wins
-            [ValidateNotNullOrEmpty()]
-            [string[]]
-            $BasePath
-        )
-        Begin
-        {
-            ## Initialise Return
-            $ReturnPath = ""
-        }
-        Process
-        {
-
-        }
-        End
-        {
-            ## Return the determined Path
-            Write-Output $ReturnPath
         }
     }
 
@@ -401,7 +377,7 @@ Process
     $TempMASTTimer += @{Name="Start-Process";Time=Get-Date}
 
     ## Get ProfileScope
-    $TempMASTProfileScope = Get-MASTProfileScope -ScriptPath $MyInvocation.MyCommand.Path
+    $MASTProfileScope += $TempMASTProfileScope = Get-MASTProfileScope -ScriptPath $MyInvocation.MyCommand.Path
     Write-Verbose "ProfileScope: $TempMASTProfileScope"
 
     ## Load Paths
@@ -430,11 +406,11 @@ Process
             ## ToDo: Load different Paths
         }
     }
-    Write-Verbose "PathOnline: $($TempMASTPaths.Online)"
-    Write-Verbose "PathLocal: $($TempMASTPaths.Local)"
+    Write-Verbose "PathOnline: $($TempMASTPath.Online)"
+    Write-Verbose "PathLocal: $($TempMASTPath.Local)"
 
     ## Check if live or dev environment
-    $MASTEnviron = $TempMASTEnviron = Get-MASTLiveDevEnviron $TempMASTDev $TempMASTDevPopup
+    $MASTEnviron = $TempMASTEnviron = Get-MASTEnvironment $TempMASTDev $TempMASTDevPopup
     Write-Verbose "Environment: $TempMASTEnviron"
 
     ## Check if Online
@@ -442,13 +418,13 @@ Process
     {
         Write-Verbose "MAST is Online"
         $MASTIsOnline = $true
-        $MASTBasePath = $TempMASTPath.Online
+        $TempMASTBasePath = $TempMASTPath.Online
     }
     elseif (Test-Path -Path (Join-Path $TempMASTPath.Local $MASTEnviron))
     {
         Write-Verbose "MAST is Offline"
         $MASTIsOnline = $false
-        $MASTBasePath = $TempMASTPath.Local
+        $TempMASTBasePath = $TempMASTPath.Local
     }
 
     ## Get Script for MAST-Loader
@@ -456,11 +432,11 @@ Process
 
     #region ######## ----- Start Loader ----- ##################################
 
-    if (Get-Variable MASTBasePath -ValueOnly -ErrorAction SilentlyContinue)
+    if (Get-Variable TempMASTBasePath -ValueOnly -ErrorAction SilentlyContinue)
     {
         if (Get-Variable TempMASTLoader -ValueOnly -ErrorAction SilentlyContinue)
         {
-            $TempMASTPathLoader = Join-Path (Join-Path $MASTBasePath $MASTEnviron) $TempMASTLoader
+            $TempMASTPathLoader = Join-Path (Join-Path $TempMASTBasePath $TempMASTEnviron) $TempMASTLoader
 
             if (Test-Path -Path $TempMASTPathLoader) {
                 
@@ -473,12 +449,13 @@ Process
                 }
                 catch
                 {
-                    Write-Warning "An Error Occured in the Loader Script File ($TempMASTLoader)"
+                    Write-Warning "An Error occured in the Loader-Scriptfile ($TempMASTLoader)"
                 }
 
                 if (Get-Command $MASTLoaderFunction -ErrorAction SilentlyContinue)
                 {
-                    . {& $MASTLoaderFunction}
+                    ## if the Loader was encapsulated in a function, call it now with parameters
+                    . $MASTLoaderFunction -MASTBasePath $TempMASTBasePath  -MASTEnviron $TempMASTEnviron -MASTProfileScope $TempMASTProfileScope
                 }
             }
             else {
@@ -511,6 +488,8 @@ End
             Write-Host ("$($TempMASTTimer[$iTimer].Name): {0:N0} Second ({1:N0} MilSec)" -f $($TempMASTTimer[$iTimer].Time - $TempMASTTimer[$iTimer-1].Time).TotalSeconds, $($TempMASTTimer[$iTimer].Time - $TempMASTTimer[$iTimer-1].Time).TotalMilliseconds) -BackgroundColor Gray -ForegroundColor Black
         }
         Write-Host ("Start-Finish: {0:N0} Second ({1:N0} MilSec)" -f $($TempMASTTimer[$TempMASTTimer.Count-1].Time - $TempMASTTimer[0].Time).TotalSeconds, $($TempMASTTimer[$TempMASTTimer.Count-1].Time - $TempMASTTimer[0].Time).TotalMilliseconds) -BackgroundColor Gray -ForegroundColor Black
+        
+        Remove-Variable "TempMAST*" -Force -ErrorAction SilentlyContinue
     }
     else
     {
