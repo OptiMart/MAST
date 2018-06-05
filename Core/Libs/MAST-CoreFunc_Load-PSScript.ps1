@@ -17,6 +17,7 @@
     param(
 		[parameter(Mandatory=$true,ParameterSetName="AllLive",HelpMessage="Bestimmt ob alles geladen werden soll")]
 		[parameter(Mandatory=$true,ParameterSetName="AllDev",HelpMessage="Bestimmt ob alles geladen werden soll")]
+  
 		[switch] $All,
 		[parameter(Mandatory=$true,ParameterSetName="AllDev",HelpMessage="Bestimmt ob aus dem Dev-Verzeichnis geladen werden soll")]
 		[switch] $Dev,
@@ -88,7 +89,13 @@
             $Attribute.ParameterSetName = $Param.ParameterSetName
 
             #$Alias = New-Object Alias(
-            $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($Param.ValidateItems)
+            if ($Param.ValidateItems) {
+                $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($Param.ValidateItems)
+            }
+            else
+            {
+                $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute("N/A")
+            }
 
             $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
             $AttributeCollection.Add($Attribute)

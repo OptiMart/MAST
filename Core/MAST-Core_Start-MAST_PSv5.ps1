@@ -3,6 +3,7 @@
 ## The Name of the Loader-Function kann be set to the $MASTLoaderFunction
 ## if its different to the default value "Start-MASTLoader"
 ## to be correctly called from the profile.ps1
+
 #Set-Variable -Name MASTLoaderFunction -Value "Start-MASTLoader" -Force
 
 function Start-MASTLoader
@@ -49,17 +50,17 @@ function Start-MASTLoader
         [Parameter()]
         [Alias("TempMASTBasePath")]
         [string]
-        $MASTBasePath = "$($PSScriptRoot | Split-Path -Parent | Split-Path -Parent)",
+        $MASTBasePath = (Split-Path -Path $PSScriptRoot -Parent),
 
         [Parameter()]
         [Alias("ProfileScope","Scope","TempMASTProfileScope")]
         [string]
-        $MASTProfileScope,
+        $MASTProfileScope = "FunctionCall",
 
         [Parameter(Position=0)]
         [Alias("TempMASTEnviron","Environment")]
         [string]
-        $MASTEnviron
+        $MASTEnviron = "Live"
     )
     Begin
     {
@@ -119,7 +120,7 @@ function Start-MASTLoader
 
         ## Laden der Pfadvariable $MASTBasePath
         Write-Progress -Activity $TempMASTLoaderName -Status "Initialisiere Variablen" -CurrentOperation '$MASTPath' -PercentComplete 12
-        . (Join-Path $PSScriptRoot "MAST-CoreData_Path.ps1")
+        . (Join-Path $MASTBasePath "\Core\Data\MAST-CoreData_Path.ps1") -MASTBasePath $MASTBasePath -Verbose:($PSBoundParameters['Verbose'] -eq $true)
 
         if ($MASTPath.Online -ne $TempMASTPath.Online) {
             Write-Warning "Die Pfadvariable zur Online-Umgebung ist nicht konsistent"
@@ -132,7 +133,7 @@ function Start-MASTLoader
 
         ## Laden der Profilfiltervariable $MASTProfileFilter
         Write-Progress -Activity $TempMASTLoaderName -Status "Initialisiere Variablen" -CurrentOperation '$MASTProfileFilter' -PercentComplete 15
-        . (Join-Path $PSScriptRoot "MAST-CoreData_ProfileFilter.ps1")
+        . (Join-Path $MASTBasePath "\Core\Data\MAST-CoreData_ProfileFilter.ps1") -Verbose:($PSBoundParameters['Verbose'] -eq $true)
 
         ## Skriptvariablen als allgemeine PS-Variablen übernehmen
         $MASTLoaderVersion = $TempMASTLoaderVersion
@@ -176,7 +177,7 @@ function Start-MASTLoader
 
             ## Initialisiere die Pfade zu den Filtern
             if ($TempMASTFilter.InitName -eq "Core") {
-                $TempMASTFilter.InitPath = $MASTPath.$MASTEnviron.Cor
+                $TempMASTFilter.InitPath = $MASTPath.Cor.Lib
             }
             else {
                 $TempMASTFilter.InitPath = $MASTPath.$MASTEnviron.Inc
@@ -262,17 +263,17 @@ function Start-MASTLoader
                     }
                 }
 
-                Copy-Item -Path "C:\Users\viatstma\source\repos\MASTAddon\MASTAddon\bin\Debug\MASTAddon.dll" -Destination C:\Daten\MASTAddon.dll
-                Add-Type -Path C:\Daten\MASTAddon.dll
-                $MASTAddon = $psISE.CurrentPowerShellTab.VerticalAddOnTools.Add("MAST Addon",[MASTAddon.AddonTool],$true)
+                #Copy-Item -Path "C:\Users\viatstma\source\repos\MASTAddon\MASTAddon\bin\Debug\MASTAddon.dll" -Destination C:\Daten\MASTAddon.dll
+                #Add-Type -Path C:\Daten\MASTAddon.dll
+                #$MASTAddon = $psISE.CurrentPowerShellTab.VerticalAddOnTools.Add("MAST Addon",[MASTAddon.AddonTool],$true)
         
-                $MASTAddon.Control.RegisterFunction($MASTUserFunctions)
+                #$MASTAddon.Control.RegisterFunction($MASTUserFunctions)
             }
 
             ## Anzahl geladener Funktionen ermitteln
             $TempMASTFuncAll = ($MASTUserFunctions | Select-Object -Unique Name | Measure-Object).Count
-            $TempMASTFuncCore = ($MASTUserFunctions | Where-Object {$_.Source -match "Kernfunktion"} | Select-Object -Unique Name | Measure-Object).Count
-            $TempMASTFuncUser = ($MASTUserFunctions | Where-Object {$_.Source -notmatch "Kernfunktion"} | Select-Object -Unique Name | Measure-Object).Count
+            $TempMASTFuncCore = ($MASTUserFunctions | Where-Object {$_.Source -match "Corefunction"} | Select-Object -Unique Name | Measure-Object).Count
+            $TempMASTFuncUser = ($MASTUserFunctions | Where-Object {$_.Source -notmatch "Corefunction"} | Select-Object -Unique Name | Measure-Object).Count
 
             ## Infotext Ausgabe über die nachgeladenen Funktionen
             Write-Host "---------------------------------------------------------------------"

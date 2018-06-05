@@ -83,7 +83,7 @@ Begin
     $TempMASTTimer += @{Name="Start";Time=Get-Date}
 
     ## Conditions for 3 sec PopUp to load Dev
-    [bool] $TempMASTDevPopup = ($env:USERNAME -match "Auriok")
+    [bool] $TempMASTDevPopup = ($env:USERNAME -match "MyUser")
 
     #region ######## ----- Declare Constants ----- #############################
 
@@ -284,16 +284,16 @@ Begin
         {
             if ($Dev)
             {
-                $ReturnVal = "Core\MAST-Core_Loader_PSv5.ps1"
+                $ReturnVal = "MAST-Core_Start-MASTLoader_PSv5.ps1"
             }
             else
             {
                 switch ($PSVersionTable.PSVersion)
                 {
                     ## check which Loader to use dependant on PSVersion
-                    #{$_ -ge [version]"5.1"} {$TempMASTLoader = "Core\MAST-Core_Loader_PSv5_1.ps1"; break} ## geplant den MAST-Loader als Klasse zu implementieren
-                    {$_ -ge [version]"4.0"} {$ReturnVal = "Core\MAST-Core_Loader_PSv4.ps1"; break}
-                    {$_ -ge [version]"2.0"} {$ReturnVal = "Core\MAST-Core_Loader_PSv2.ps1"; break}
+                    {$_ -ge [version]"5.0"} {$ReturnVal = "MAST-Core_Start-MASTLoader_PSv5.ps1"; break}
+                    {$_ -ge [version]"4.0"} {$ReturnVal = "MAST-Core_Start-MASTLoader_PSv4.ps1"; break}
+                    {$_ -ge [version]"2.0"} {$ReturnVal = "MAST-Core_Start-MASTLoader_PSv2.ps1"; break}
                     default {$ReturnVal = ""; break}
                 }
             }
@@ -409,10 +409,13 @@ Process
     Write-Verbose "PathOnline: $($TempMASTPath.Online)"
     Write-Verbose "PathLocal: $($TempMASTPath.Local)"
 
+    ## ToDo: Check if Firstrun -> start install / prepare environment (Folderstructure)
+    ##       eventually copy profile.ps1 to destinations
+
     ## Check if live or dev environment
     $MASTEnviron = $TempMASTEnviron = Get-MASTEnvironment $TempMASTDev $TempMASTDevPopup
     Write-Verbose "Environment: $TempMASTEnviron"
-
+    
     ## Check if Online
     if (Test-Path -Path (Join-Path $TempMASTPath.Online $MASTEnviron))
     {
@@ -436,7 +439,8 @@ Process
     {
         if (Get-Variable TempMASTLoader -ValueOnly -ErrorAction SilentlyContinue)
         {
-            $TempMASTPathLoader = Join-Path (Join-Path $TempMASTBasePath $TempMASTEnviron) $TempMASTLoader
+            #$TempMASTPathLoader = Join-Path (Join-Path $TempMASTBasePath $TempMASTEnviron) $TempMASTLoader
+            $TempMASTPathLoader = Join-Path $TempMASTBasePath "\Core\$TempMASTLoader"
 
             if (Test-Path -Path $TempMASTPathLoader) {
                 
@@ -455,7 +459,7 @@ Process
                 if (Get-Command $MASTLoaderFunction -ErrorAction SilentlyContinue)
                 {
                     ## if the Loader was encapsulated in a function, call it now with parameters
-                    . $MASTLoaderFunction -MASTBasePath $TempMASTBasePath  -MASTEnviron $TempMASTEnviron -MASTProfileScope $TempMASTProfileScope
+                    . $MASTLoaderFunction -MASTBasePath $TempMASTBasePath -MASTProfileScope $TempMASTProfileScope
                 }
             }
             else {
@@ -488,8 +492,6 @@ End
             Write-Host ("$($TempMASTTimer[$iTimer].Name): {0:N0} Second ({1:N0} MilSec)" -f $($TempMASTTimer[$iTimer].Time - $TempMASTTimer[$iTimer-1].Time).TotalSeconds, $($TempMASTTimer[$iTimer].Time - $TempMASTTimer[$iTimer-1].Time).TotalMilliseconds) -BackgroundColor Gray -ForegroundColor Black
         }
         Write-Host ("Start-Finish: {0:N0} Second ({1:N0} MilSec)" -f $($TempMASTTimer[$TempMASTTimer.Count-1].Time - $TempMASTTimer[0].Time).TotalSeconds, $($TempMASTTimer[$TempMASTTimer.Count-1].Time - $TempMASTTimer[0].Time).TotalMilliseconds) -BackgroundColor Gray -ForegroundColor Black
-        
-        Remove-Variable "TempMAST*" -Force -ErrorAction SilentlyContinue
     }
     else
     {

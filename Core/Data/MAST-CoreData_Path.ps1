@@ -13,11 +13,12 @@
 param(
     # Name of the Path-Variable leave blank for default ($MASTPath)
     [Parameter()]
+    [Alias("VarName","Name")]
     [string]
-    $VarName = "MASTPath",
+    $TempVarName = "MASTPath",
 
     # The Path to the MAST-Root leave Blank for default (..\..\)
-    [Parameter()]
+    [Parameter(Position=0)]
     [string]
     $MASTBasePath = "$($PSScriptRoot | Split-Path -Parent | Split-Path -Parent)",
 
@@ -25,11 +26,10 @@ param(
     [switch] $Force
 )
 
-Write-Verbose "Lade Variable $VarName - Force: $Force"
-
+Write-Verbose "Lade Variable $TempVarName - Force: $Force"
 
 ## Aus Performacegründen werden diese Variablen nur einmalig erzeugt
-if((Get-Variable -Name $VarName -ErrorAction SilentlyContinue) -eq $null -or $Force) {
+if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or $Force) {
 
 #region -------------------------------------------- Parameter der Variable ---------------------------------------------------
 
@@ -66,6 +66,7 @@ if((Get-Variable -Name $VarName -ErrorAction SilentlyContinue) -eq $null -or $Fo
         Bkp = "Archiv"                             ## Ordner für das Archiv
         Rel = "Release"                            ## Ordner für die zu veröffentlichen Dateien
         Log = "Logs"                               ## Ordner für Logfiles
+        Cor = "Core"                               ## Ordner mit den Corefiles
     }
 
     ## Unterordner auf Ebene 2
@@ -73,7 +74,7 @@ if((Get-Variable -Name $VarName -ErrorAction SilentlyContinue) -eq $null -or $Fo
         Env = ""                                   ## Wurzelverzeichnis
         Bin = "Bin"                                ## Ordner für Dateien mit direkt ausführbaren Code
         Cor = "Core"                               ## Ordner für Kern-Dateien
-        Dat = "Data"                               ## Ordner für Dateien mit Variablen
+        #Dat = "Data"                               ## Ordner für Dateien mit Variablen
         Inc = "Includes"                           ## Ordner für Dateien die vom Loader gezielt geladen werden
         Lib = "Libs"                               ## Ordner für allgemeine Funktionen und Module
     }
@@ -93,12 +94,12 @@ if((Get-Variable -Name $VarName -ErrorAction SilentlyContinue) -eq $null -or $Fo
 
     try {
         ## Anlegen der gewünschten Variable
-        Set-Variable -Name $VarName -Value $TempVarValue -Scope $TempVarScope -Option $TempVarOption -Description $TempVarDescription -Visibility $TempVarVisibility -Force:($Force -eq $true) -ErrorAction Stop
+        Set-Variable -Name $TempVarName -Value $TempVarValue -Scope $TempVarScope -Option $TempVarOption -Description $TempVarDescription -Visibility $TempVarVisibility -Force:($Force -eq $true) -ErrorAction Stop
         Write-Verbose " - laden erfolgreich"
     }
     catch {
         Write-Verbose " - Fehler"
-        Write-Warning "Die Variable $VarName konnte nicht erzeugt werden. $($Error[0].Exception.Message)"
+        Write-Warning "Die Variable $TempVarName konnte nicht erzeugt werden. $($Error[0].Exception.Message)"
     }
 }
 else {

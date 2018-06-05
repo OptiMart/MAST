@@ -24,15 +24,18 @@
 #>
 
 [CmdletBinding()]
-param([switch] $Force)
+param(
+    # Name of the Path-Variable leave blank for default ($MASTPath)
+    [Parameter()]
+    [Alias("VarName","Name")]
+    [string]
+    $TempVarName = "MASTProfileFilter",
 
-#region ----------------------------------------------- Name der Variable -----------------------------------------------------
+    # Switch to Force relaod of the Variable
+    [switch] $Force
+)
 
-    $TempVarName = "MASTProfileFilter"
-    
-    Write-Verbose "Lade Variable $TempVarName - Force: $Force"
-
-#endregion -------------------------------------------- Name der Variable -----------------------------------------------------
+Write-Verbose "Lade Variable $TempVarName - Force: $Force"
 
 ## Aus Performacegründen werden diese Variablen nur einmalig erzeugt
 if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or $Force) {
@@ -61,12 +64,12 @@ if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or
             InitName = "Global"
             InitHead = "  ---  Loading Default Scripts   ---  "
             InitIncl = "PS_global_*.ps1"
-            InitScope = @("AllUsersAllHosts","CurrentUserAllHosts")
+            InitScope = @("AllUsersAllHosts","CurrentUserAllHosts","FunctionCall")
             InitFile = @()
             InitPath = @()
         },
         @{
-            InitName = "Standort"
+            InitName = "Site"
             InitHead = "  ---  Loading Site Scripts      ---  $($MASTPath.Site)  "
             InitIncl = "PS_$($MASTPath.Site)_*.ps1"
             InitScope = @("AllUsersAllHosts","CurrentUserAllHosts")
@@ -74,7 +77,7 @@ if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or
             InitPath = @()
         },
         @{
-            InitName = "Gruppen"
+            InitName = "Groups"
             InitHead = "  ---  Loading Group Scripts     ---  $("$(try{"$((Get-ItemProperty -Path $MASTPath.HKCU -ErrorAction Ignore).Gruppen);$((Get-ItemProperty -Path $MASTPath.HKLM -ErrorAction Ignore).Gruppen)"}catch{})" -Split(";") -Split(",") | %{$_.trim(" ")})  "
             InitIncl = @("$(try{"$((Get-ItemProperty -Path $MASTPath.HKCU -ErrorAction Ignore).Gruppen);$((Get-ItemProperty -Path $MASTPath.HKLM -ErrorAction Ignore).Gruppen)"}catch{})" -Split(";") -Split(",") | %{ if ($_.Trim(" ") -gt 0) {"PS_$($_.Trim(" "))_*.ps1"} else {"---"} })
             InitScope = @("AllUsersAllHosts","CurrentUserAllHosts")
@@ -90,10 +93,10 @@ if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or
             InitPath = @()
         },
         @{
-            InitName = "Benutzer"
+            InitName = "User"
             InitHead = "  ---  Loading User Scripts      ---  $env:USERNAME  "
             InitIncl = "PS_$($env:USERNAME)_*.ps1"
-            InitScope = @("AllUsersAllHosts","CurrentUserAllHosts")
+            InitScope = @("AllUsersAllHosts","CurrentUserAllHosts","FunctionCall")
             InitFile = @()
             InitPath = @()
         },

@@ -20,7 +20,7 @@
 	process {
 		Write-Verbose "--- $($MyInvocation.MyCommand) - Process - Start"
         
-        $MASTUserFunctions | Sort-Object -Property Name -Unique | Where-Object { ($_.Name -match $Filter) -and ($Core -or ($_.Source -notmatch "Kernfunktion")) } | % {
+        $MASTUserFunctions | Sort-Object -Property Name -Unique | Where-Object { ($_.Name -match $Filter) -and ($Core -or ($_.Source -notmatch "Corefunction")) } | % {
             Write-Host "`r`n$($_.Name)" -ForegroundColor Cyan -NoNewline
             Write-Host " ($($_.Source))" -ForegroundColor Gray
             if (-not $($(Get-Help "$($_.Name)").Synopsis).startswith("$([char]13)$([char]10)")) {
