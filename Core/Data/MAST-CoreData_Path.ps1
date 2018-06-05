@@ -63,7 +63,7 @@ if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or
         Liv = "Live"                               ## Ordner für die Live-Umgebung
         Live = "Live"                              ## Ordner für die Live-Umgebung
         Dev = "Dev"                                ## Ordner für die Entwicklungsumgebung
-        Bkp = "Archiv"                             ## Ordner für das Archiv
+        Bkp = "Archive"                            ## Ordner für das Archiv
         Rel = "Release"                            ## Ordner für die zu veröffentlichen Dateien
         Log = "Logs"                               ## Ordner für Logfiles
         Cor = "Core"                               ## Ordner mit den Corefiles
