@@ -1,5 +1,4 @@
-# MAST
-Manage &amp; Administrate Scripts - Tool
+# Manage &amp; Administrate Scripts - Tool (MAST)
 
 The purpose of this Tool is to help adminstrators keep their Scripts organized, structured and centralised in their environment.
 
