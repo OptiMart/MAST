@@ -11,7 +11,7 @@ function Start-MASTLoader
     <#
     .NOTES
         Managing & Administrating Scripts - Tool (MAST)
-        Name: PS-Core_LoaderPSv4.ps1 
+        Name: PS-Core_LoaderPSv5.ps1 
         Autor: Martin Strobl
         Version History:
         1.0 - 12.04.2017 - Initial Release.
@@ -65,62 +65,44 @@ function Start-MASTLoader
     Begin
     {
         #region ################################# ----- Versionsinformationen festlegen ----- #########################################
-        [string] $TempMASTLoaderName = "$($MyInvocation.MyCommand)"
-        [uint32] $TempMASTLoaderVerMajor = 2
-        [uint32] $TempMASTLoaderVerMinor = 1
-        #[uint32] $TempMASTLoaderVerBuild = ((Get-Item $MyInvocation.MyCommand.Path).LastWriteTime - (Get-Date 01.01.2017)).Days
-        #[uint32] $TempMASTLoaderVerRevis = (Get-Item $MyInvocation.MyCommand.Path).LastWriteTime.TimeOfDay.TotalMinutes
-        [uint32] $TempMASTLoaderVerBuild = 0
-        [uint32] $TempMASTLoaderVerRevis = 0
 
-        $TempMASTLoaderVersion = New-Object version $TempMASTLoaderVerMajor, $TempMASTLoaderVerMinor, $TempMASTLoaderVerBuild, $TempMASTLoaderVerRevis
+        [string] $MASTLoaderName = "$($MyInvocation.MyCommand)"
+        [uint32] $MASTLoaderVerMajor = 2
+        [uint32] $MASTLoaderVerMinor = 2
+        [uint32] $MASTLoaderVerBuild = 0
+        [uint32] $MASTLoaderVerRevis = 0
+
+        $TempMASTLoaderVersion = New-Object version $MASTLoaderVerMajor, $MASTLoaderVerMinor, $MASTLoaderVerBuild, $MASTLoaderVerRevis
         
         #endregion
 
         #region ############################## ----- Prüfung auf schon gestarteten Loader ----- #######################################
         
-        Write-Progress -Activity $TempMASTLoaderName -Status "Check vorhandene Instanzen" -PercentComplete 5
+        Write-Progress -Activity $MASTLoaderName -Status "Check vorhandene Instanzen" -PercentComplete 5
 
-        if (Get-Variable MASTLoaderVersion -ErrorAction SilentlyContinue) {
-    
-            ## Initialisiere Flag wegen Beendigung
-            $TempMASTExit = $false
-
-            if ($TempMASTLoaderVersion -gt $MASTLoaderVersion) {
-                Write-Host "Es existiert eine neuere Version des Loaders ($TempMASTProfileScope) v$TempMASTLoaderVersion" -ForegroundColor Yellow
-
-                if ($Host.Name -notmatch "ISE") {
-                    ## Wenn nicht in PSISE ausgeführt wird, wird immer abgebrochen
-                    $TempMASTExit = $true
-                }
-                else {
-                    $TempMASTPopup = new-object -comobject wscript.shell
-                    if ($TempMASTPopup.popup("Es existiert eine neuere Version des Loaders ($TempMASTProfileScope) v$TempMASTLoaderVersion`r`nSoll diese nun nachgeladen werden?",3,"Zusätzlicher Loader",4) -ne 6) {
-                        ## Wenn nicht rechtzeitig mit "Ja" bestätigt wird, wird abgebrochen
-                        $TempMASTExit = $true
-                    }
-                }
-            }
-            else {
-                ## Die aktuelle Version ist gleich oder älter als die schon geladene -> kein weiteres/erneutes laden nötig
-                $TempMASTExit = $true
-            }
-
-            if ($TempMASTExit) {
-                ## Der Loader wird an dieser Stelle beendet, zuvor wird noch aufgeräumt
-                #Write-Progress -Activity $TempMASTLoaderName -Completed
-                return
-            }
+        . (Join-Path $MASTBasePath "\Core\Bin\MAST-Core_Check-MASTVersion.ps1")
+        
+        $ContinueLoading = Check-MASTLoaderVersion -Version $TempMASTLoaderVersion -Scope $MASTProfileScope -Output:($MASTEnviron -match "^Dev") -Verbose:($PSBoundParameters['Verbose'] -eq $true)
+        
+        if ($ContinueLoading)
+        {
+            New-Variable -Name MASTLoaderVersion -Value $TempMASTLoaderVersion -Scope global -Option ReadOnly -Force
+        }
+        else
+        {
+            ## Stop loading
+            break
         }
         
         #endregion
 
         #region ############################# ----- Initialisierung der Umgebungsvariablen ----- ######################################
-        Write-Progress -Activity $TempMASTLoaderName -Status "Initialisiere Variablen" -PercentComplete 10
+        
+        Write-Progress -Activity $MASTLoaderName -Status "Initialisiere Variablen" -PercentComplete 10
 
-        ## Laden der Pfadvariable $MASTBasePath
-        Write-Progress -Activity $TempMASTLoaderName -Status "Initialisiere Variablen" -CurrentOperation '$MASTPath' -PercentComplete 12
-        . (Join-Path $MASTBasePath "\Core\Data\MAST-CoreData_Path.ps1") -MASTBasePath $MASTBasePath -Verbose:($PSBoundParameters['Verbose'] -eq $true)
+        ## Laden der Pfadvariable $MASTPath
+        Write-Progress -Activity $MASTLoaderName -Status "Initialisiere Variablen" -CurrentOperation '$MASTPath' -PercentComplete 12
+        . (Join-Path $MASTBasePath "\Core\Data\MAST-CoreData_Path.ps1") -MASTBasePath $MASTBasePath -Force -Verbose:($PSBoundParameters['Verbose'] -eq $true)
 
         if ($MASTPath.Online -ne $TempMASTPath.Online) {
             Write-Warning "Die Pfadvariable zur Online-Umgebung ist nicht konsistent"
@@ -132,11 +114,10 @@ function Start-MASTLoader
         }
 
         ## Laden der Profilfiltervariable $MASTProfileFilter
-        Write-Progress -Activity $TempMASTLoaderName -Status "Initialisiere Variablen" -CurrentOperation '$MASTProfileFilter' -PercentComplete 15
-        . (Join-Path $MASTBasePath "\Core\Data\MAST-CoreData_ProfileFilter.ps1") -Verbose:($PSBoundParameters['Verbose'] -eq $true)
+        Write-Progress -Activity $MASTLoaderName -Status "Initialisiere Variablen" -CurrentOperation '$MASTProfileFilter' -PercentComplete 15
+        . (Join-Path $MASTBasePath "\Core\Data\MAST-CoreData_ProfileFilter.ps1") -Force -Verbose:($PSBoundParameters['Verbose'] -eq $true)
 
         ## Skriptvariablen als allgemeine PS-Variablen übernehmen
-        $MASTLoaderVersion = $TempMASTLoaderVersion
         #$MASTProfileScope = $TempMASTProfileScope
 
         if (-not(Get-Variable MASTUserFunctions -ErrorAction SilentlyContinue)) {
@@ -151,7 +132,7 @@ function Start-MASTLoader
     Process
     {
         #region ############################# ----- Starte robocopy des aktuellen LiveEnv ----- #######################################
-        Write-Progress -Activity $TempMASTLoaderName -Status "Starte Copy-Job" -PercentComplete 20
+        Write-Progress -Activity $MASTLoaderName -Status "Starte Copy-Job" -PercentComplete 20
 
         <#if ($MASTIsOnline -and $TempMASTProfileScope -match "AllUsersAllHosts" -and $MASTPath.Local) {
             ## ToDo, Berechtigungsthemen überprüfen
@@ -165,15 +146,15 @@ function Start-MASTLoader
 
         #region ############ ----- Laden der Profil-Filter und verarbeiten der zugeordneten Include-Dateien ----- #####################
 
-        Write-Host "Powershell $($PSVersionTable.PSVersion) | $($TempMASTLoaderName) [$MASTProfileScope] $MASTEnviron v$MASTLoaderVersion"
-        Write-Progress -Activity $TempMASTLoaderName -Status "Nachladen Benutzerskripte" -PercentComplete 30
+        Write-Host "Powershell $($PSVersionTable.PSVersion) | $($MASTLoaderName) [$MASTProfileScope] $MASTEnviron v$MASTLoaderVersion"
+        Write-Progress -Activity $MASTLoaderName -Status "Nachladen Benutzerskripte" -PercentComplete 30
 
         $TempMASTProfileFilter = $MASTProfileFilter | Where-Object {$_.InitScope -Match $MASTProfileScope -or $_.InitName -eq "Core"}
         $TempMASTFilterCount = 0
 
         foreach ($TempMASTFilter in $TempMASTProfileFilter) {
             $TempMASTFilterCount++
-            Write-Progress -Activity $TempMASTLoaderName -Status "Nachladen Benutzerskripte $($TempMASTFilter.InitName)" -CurrentOperation "ermittle Dateien" -PercentComplete (30+(($TempMASTFilterCount-0.5)/$TempMASTProfileFilter.Count)*60)
+            Write-Progress -Activity $MASTLoaderName -Status "Nachladen Benutzerskripte $($TempMASTFilter.InitName)" -CurrentOperation "ermittle Dateien" -PercentComplete (30+(($TempMASTFilterCount-0.5)/$TempMASTProfileFilter.Count)*60)
 
             ## Initialisiere die Pfade zu den Filtern
             if ($TempMASTFilter.InitName -eq "Core") {
@@ -199,7 +180,7 @@ function Start-MASTLoader
 
                 try {
                     ## Lade die PS-File per Dot-Sourcing nach
-                    Write-Progress -Activity $TempMASTLoaderName -Status "Nachladen Benutzerskripte $($TempMASTFilter.InitName)" -CurrentOperation "$($TempMASTFile.BaseName)" -PercentComplete (30+($TempMASTFilterCount/$TempMASTProfileFilter.Count)*60)
+                    Write-Progress -Activity $MASTLoaderName -Status "Nachladen Benutzerskripte $($TempMASTFilter.InitName)" -CurrentOperation "$($TempMASTFile.BaseName)" -PercentComplete (30+($TempMASTFilterCount/$TempMASTProfileFilter.Count)*60)
                     . $TempMASTFile.FullName
                 }
                 catch [System.Management.Automation.PSSecurityException] {
@@ -227,11 +208,14 @@ function Start-MASTLoader
         }
         #endregion
 
+    }
+    End
+    {
         #region ####################################### ----- Ausgabe Zusatzinfos ----- ###############################################
-        Write-Progress -Activity $TempMASTLoaderName -Status "Ausgabe Zusatzinfos" -PercentComplete 91
+        Write-Progress -Activity $MASTLoaderName -Status "Ausgabe Zusatzinfos" -PercentComplete 91
 
         if ($MASTAdminHelp -or $Host.Name -match "ISE" -or $MASTProfileScope -match "RemoteProfile") {
-            Write-Progress -Activity $TempMASTLoaderName -Status "Ausgabe Zusatzinfos" -CurrentOperation "AdminHelp" -PercentComplete 95
+            Write-Progress -Activity $MASTLoaderName -Status "Ausgabe Zusatzinfos" -CurrentOperation "AdminHelp" -PercentComplete 95
 
             ## Ausgabe der geladenen Dateien pro Filter
             if ($Host.Name -match "ISE" -or $MASTProfileScope -match "RemoteProfile") {
@@ -291,7 +275,7 @@ function Start-MASTLoader
 
         if ($MASTDebugLevel -ge 1) {
             ## Überprüfe den Robocopy-Prozess
-            Write-Progress -Activity $TempMASTLoaderName -Status "Ausgabe Zusatzinfos" -CurrentOperation "Robocopy Job" -PercentComplete 99
+            Write-Progress -Activity $MASTLoaderName -Status "Ausgabe Zusatzinfos" -CurrentOperation "Robocopy Job" -PercentComplete 99
 
             $LiveCopyJob = @(Get-Job | Where-Object -Property Name -Like CopyLive)
 
@@ -327,8 +311,5 @@ function Start-MASTLoader
             }
         }
         #endregion
-    }
-    End
-    {
     }
 }
