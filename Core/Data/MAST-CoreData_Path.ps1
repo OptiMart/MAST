@@ -1,4 +1,11 @@
-﻿<#
+﻿################################################################################
+##                                                                            ##
+##  Manage & Administrate Scripts - Tool (MAST)                               ##
+##  Copyright (c) 2018 Martin Strobl                                          ##
+##                                                                            ##
+################################################################################
+
+<#
 .NOTES
     Autor: Martin Strobl
 .SYNOPSIS
@@ -6,7 +13,7 @@
 .DESCRIPTION
     Die Variable $MASTPath beinhaltet alle Pfadangaben und wird im Profil geladen um dann
     überall zur Verfügung zu stehen
-    Die Variable $MASTBasePath (Rootpath für die Powershellverwaltung) muss vorher definiert werden
+    Der PArameter $TempMASTBasePath (Rootpath für die Powershellverwaltung) muss uebergeben werden
 #>
 
 [CmdletBinding()]
@@ -19,8 +26,9 @@ param(
 
     # The Path to the MAST-Root leave Blank for default (..\..\)
     [Parameter(Position=0)]
+    [Alias("MASTBasePath")]
     [string]
-    $MASTBasePath = "$($PSScriptRoot | Split-Path -Parent | Split-Path -Parent)",
+    $TempMASTBasePath = "$($PSScriptRoot | Split-Path -Parent | Split-Path -Parent)",
 
     # Switch to Force relaod of the Variable
     [switch] $Force
@@ -45,12 +53,12 @@ if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or
     ## Dies ist die Hauptvariable; wird weiter unten noch ergänzt
     
     $TempVarValue = New-Object psobject -Property @{
-        Base = $MASTBasePath
+        Base = $TempMASTBasePath
         Online = "\\ServerName\Share\ScriptRoot"      ## Der Root-Pfad zur Onlineumgebung (wird im Loader aktualisiert)
         Local = "$(Join-Path $env:HOMEDRIVE "MAST")"  ## Der Root-Pfad zur Offlineumgebung (wird im Loader aktualisiert)
         HKLM = "HKLM:\Software\MAST"                  ## Der Registrypfad zu den Computer Settings
         HKCU = "HKCU:\Software\MAST"                  ## Der Registrypfad zu den User Settings
-        Logs = "$(Join-Path $MASTBasePath "Logs")"    ## Der Pfad zu den Logdateien
+        Logs = "$(Join-Path $TempMASTBasePath "Logs")"    ## Der Pfad zu den Logdateien
         Site = "$(try{                                ## Der Standortname laut Activedirectory
                     $($([System.DirectoryServices.ActiveDirectory.ActiveDirectorySite]::GetComputerSite()).Name)
                 }catch [System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException]{
@@ -84,7 +92,7 @@ if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or
         $TempVarSub1 = New-Object psobject
 
         foreach ($Sub2 in $TempVarMASTPathSub2.GetEnumerator()) {
-            $TempVarSub1 | Add-Member -MemberType NoteProperty -Name $Sub2.Name -Value (Join-Path (Join-Path $MASTBasePath $Sub1.Value) $Sub2.Value)
+            $TempVarSub1 | Add-Member -MemberType NoteProperty -Name $Sub2.Name -Value (Join-Path (Join-Path $TempMASTBasePath $Sub1.Value) $Sub2.Value)
         }
 
         $TempVarValue | Add-Member -MemberType NoteProperty -Name $Sub1.Name -Value $TempVarSub1

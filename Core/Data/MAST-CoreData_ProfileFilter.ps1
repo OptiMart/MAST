@@ -1,4 +1,11 @@
-﻿<#
+﻿################################################################################
+##                                                                            ##
+##  Manage & Administrate Scripts - Tool (MAST)                               ##
+##  Copyright (c) 2018 Martin Strobl                                          ##
+##                                                                            ##
+################################################################################
+
+<#
 .NOTES
     Autor: Martin Strobl
     Die Variable $ProfileFilterData wird in den Core-Loader Dateien die bei jedem Start einer PS Sitzung geladen werden nachgeladen

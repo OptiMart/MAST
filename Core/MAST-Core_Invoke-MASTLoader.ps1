@@ -1,6 +1,26 @@
-﻿<#
+﻿################################################################################
+##                                                                            ##
+##  Manage & Administrate Scripts - Tool (MAST)                               ##
+##  Copyright (c) 2018 Martin Strobl                                          ##
+##                                                                            ##
+##  This program is free software: you can redistribute it and/or modify      ##
+##  it under the terms of the GNU General Public License as published by      ##
+##  the Free Software Foundation, either version 3 of the License, or         ##
+##  (at your option) any later version.                                       ##
+##                                                                            ##
+##  This program is distributed in the hope that it will be useful,           ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of            ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             ##
+##  GNU General Public License for more details.                              ##
+##                                                                            ##
+##  You should have received a copy of the GNU General Public License         ##
+##  along with this program.  If not, see <http://www.gnu.org/licenses/>.     ##
+##                                                                            ##
+################################################################################
+
+<#
 .NOTES
-    Name: MAST-Local-Profile.ps1 
+    Name: MAST-Core_Invoke-MASTLoader.ps1 
     Autor: Martin Strobl
     Version History:
     2.0 - 31.08.2017 - Trennung von Lokaler profile.ps1 Datei und Loader-Datei
@@ -55,21 +75,21 @@ Param(
     [string]
     $TempMASTPathHKCU = "HKCU:\Software\MAST",
 
-    # Save the provided Paths
+    # Save the provided Paths - not implementet
     [Parameter(Mandatory=$true,
                ParameterSetName='SaveNewPath')]
     [Alias("Save")]
     [switch]
     $TempMASTSave,
 
-    # Load with the provided Paths
+    # Load with the provided Paths - not implementet
     [Parameter(Mandatory=$true,
                ParameterSetName='LoadForcePath')]
     [Alias("Force")]
     [switch]
     $TempMASTForce,
 
-    # Load with the provided Paths
+    # Load in Develepmentmode
     [Parameter(Mandatory=$true,
                ParameterSetName='Development')]
     [Alias("Dev","Develope","Development")]
@@ -449,11 +469,12 @@ Process
                 
                 try
                 {
+                    ## Import the detirmenied MASTLoader Script
                     . $TempMASTPathLoader
                 }
                 catch
                 {
-                    Write-Warning "An Error occured in the Loader-Scriptfile ($TempMASTLoader)"
+                    Write-Warning "An Error occured in the Loader-Scriptfile ($TempMASTLoader)`r`n$($Error[0])"
                 }
 
                 if (Get-Command $MASTLoaderFunction -ErrorAction SilentlyContinue)
