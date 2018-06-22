@@ -1,80 +1,84 @@
-﻿# Klasse definieren
-class MASTDict
-{
-    [string] $Language
-    hidden [string] $ParentLang
+﻿################################################################################
+##                                                                            ##
+##  Manage & Administrate Scripts - Tool (MAST)                               ##
+##  Copyright (c) 2018 Martin Strobl                                          ##
+##                                                                            ##
+################################################################################
 
-    hidden [hashtable] $MASTDictionary = @{
-        "TEXT_YES" = @{
-            default = "Yes"
-            en_US = "Yes"
-            de_DE = "Ja"
+<#
+.NOTES
+    Autor: Martin Strobl
+.SYNOPSIS
+    
+.DESCRIPTION
+#>
+
+[CmdletBinding()]
+param(
+    # Name of the Path-Variable leave blank for default ($MASTPath)
+    [Parameter()]
+    [Alias("VarName","Name")]
+    [string]
+    $TempVarName = "TempMASTDictionaries",
+
+    # Language Filter
+    [Parameter()]
+    [Alias("Language","Filter")]
+    [string]
+    $TempVarLanguage,
+
+    # Switch to Force relaod of the Variable
+    [switch] $Force
+)
+
+Write-Verbose "Lade Variable $TempVarName - Force: $Force"
+
+## Aus Performacegründen werden diese Variablen nur einmalig erzeugt
+if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or $Force) {
+
+#region -------------------------------------------- Parameter der Variable ---------------------------------------------------
+
+    $TempVarScope = "local"
+    $TempVarOption = [System.Management.Automation.ScopedItemOptions]::None
+    $TempVarDescription = "Variable mit den MAST Dictionary Words"
+    $TempVarVisibility = [System.Management.Automation.SessionStateEntryVisibility]::Public
+
+#endregion ----------------------------------------- Parameter der Variable ---------------------------------------------------
+
+#region ---------------------------------------------- Inhalt der Variable ----------------------------------------------------
+
+    $TempVarValue = @(
+        @{
+            Lang = "en"
+            Dict = @{
+                "Yes" = "Yes"
+                "No" = "No"
+            }
         }
-        "TEXT_NO" = @{
-            default = "No"
-            en_US = "No"
-            de_DE = "Nein"
+        @{
+            Lang = "de"
+            Dict = @{
+                "Yes" = "Ja"
+                "No" = "Nein"
+            }
         }
+    ) | Where-Object -Property Lang -Match $TempVarLanguage
+
+#endregion ------------------------------------------- Inhalt der Variable ----------------------------------------------------
+
+    try {
+        ## Anlegen der gewünschten Variable
+        Set-Variable -Name $TempVarName -Value $TempVarValue -Scope $TempVarScope -Option $TempVarOption -Description $TempVarDescription -Visibility $TempVarVisibility -Force:($Force -eq $true) -ErrorAction Stop
+        Write-Verbose " - laden erfolgreich"
     }
-
-    # Konstruktor
-    MASTDict ([string] $Lang)
-    {
-        $this.SetLanguage($Lang)
-    }
-
-    # Konstruktor
-    MASTDict ()
-    {
-        $this.SetLanguage([cultureinfo]::CurrentUICulture.Name)
-    }
-                
-    # Set Output Language
-    [void] SetLanguage([string] $Lang)
-    {
-        $this.Language = $Lang -replace "-", "_"
-        $this.ParentLang = ($this.Language -split "_")[0]
-    }
-                
-    # Get translated Text
-    [string] Text([string] $Text)
-    {
-        ## initialisiere Returnwert
-        [string] $RetText = ""
-
-        ## Laden den Text mit dem übergebenen Platzhalter
-        try
-        {
-            $TextObj = $this.MASTDictionary.$Text
-        }
-        catch
-        {
-            ## Wenn der Text nicht angelegt ist wird der Suchstring zurückgegeben
-            $RetText = $Text
-            return $Text
-        }
-
-        ## Versuche den Text in der gewünschten Sprache zu erhalten
-        try
-        {
-            $RetText = $TextObj.$($this.MASTLanguage)
-            return $RetText
-        }
-        catch
-        {}
-
-        ## Versuche den Text in der Übergeordneten Sprache zu erhalten
-        try
-        {
-            $RetText = ($TextObj.GetEnumerator() | Where-Object Name -Match "^$($this.ParentLang)_" | Select-Object -First 1).Value
-            return $RetText
-        }
-        catch
-        {
-            ## Wenn der Text auch nicht in einer übergeordneten Sprache gefunden wurde dann wird der default wert zurückgegeben
-            $RetText = $TextObj.default
-        }
-
-        return $RetText
+    catch {
+        Write-Verbose " - Fehler"
+        Write-Warning "Die Variable $TempVarName konnte nicht erzeugt werden. $($Error[0].Exception.Message)"
     }
 }
+else {
+    Write-Verbose " - existiert schon"
+}
+
+## Entfernen der Temporären Variablen
+Remove-Variable -Name "TempVar*"

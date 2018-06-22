@@ -1,56 +1,4 @@
-﻿function Merge-Hashtables
-{
-    [CmdLetBinding()]
-    param(
-        [parameter(Position=0,ValueFromPipeline)]
-        $HashTables,
-        
-        [parameter()]
-        [ScriptBlock]
-        $Operator
-    )
-    begin
-    {
-        $Output = @{}
-    }
-    process
-    {
-        Write-Verbose "test1"
-        $HashTables
-        foreach ($Hashtable in $HashTables)
-        {
-            Write-Verbose "Hashtable"
-            if ($Hashtable -is [Hashtable]) {
-            Write-Verbose "test"
-                foreach ($Key in $Hashtable.Keys) {
-                    $Output.$Key = if ($Output.ContainsKey($Key))
-                    {
-                        @($Output.$Key) + $Hashtable.$Key
-                    }
-                    else
-                    {
-                        $Hashtable.$Key
-                    }
-                }
-            }
-        }
-    }
-    end
-    {
-        if ($Operator)
-        {
-            foreach ($Key in @($Output.Keys))
-            {
-                $_ = @($Output.$Key)
-                $Output.$Key = Invoke-Command $Operator
-            }
-        }
-    
-        Write-Output $Output
-    }
-}
-
-class MASTDictionary
+﻿class MASTDictionary
 {
     hidden [hashtable] $Dict
     [cultureinfo] $Culture
@@ -64,7 +12,7 @@ class MASTDictionary
 
     [void] AddText ($obj)
     {
-        $this.Dict = [MASTCore]::MergeHashtables(@($this.Dict, $obj),{$_[-1]})
+        $this.Dict = [MASTUtilities]::MergeHashtables(@($this.Dict, $obj),{$_[-1]})
     }
 
     [string] GetText ([string] $Tag)
@@ -93,19 +41,20 @@ class MASTTranslator
     hidden [cultureinfo] $ActiveLanguage
     hidden [MASTDictionary[]] $Dictionaries
 
-    # Konstruktor
+    # Constructor Set Userdefined active target language
     MASTTranslator ([string] $Lang)
     {
         $this.SetLanguage($Lang)
     }
 
-    # Konstruktor
+    # Constructor Set current OS language as active target language
     MASTTranslator ()
     {
-        $this.ActiveLanguage = [cultureinfo]::CurrentCulture
+        $this.SetLanguage([cultureinfo]::CurrentCulture)
     }
     
-    [bool] LoadDictionary ([string] $Lang, $Dictionary)
+    # Add a new Dictionary (add/overwrite)
+    [bool] AddDictionary ([string] $Lang, $Dictionary)
     {
         ## Check ob korrekte Sprache
         if ([cultureinfo]::GetCultures([System.Globalization.CultureTypes]::AllCultures).Name -eq $Lang)
@@ -137,6 +86,7 @@ class MASTTranslator
         return $true
     }
 
+
     [void] AddText ([cultureinfo] $Lang, [hashtable] $obj)
     {
         if ($this.LanguageIsLoaded($Lang))
@@ -153,16 +103,16 @@ class MASTTranslator
     {
         if (-not $this.LanguageIsLoaded($Lang))
         {
-            $this.LoadDictionary($Lang, @{})
+            $this.AddDictionary($Lang, @{})
         } 
 
         return $this.Dictionaries | Where-Object Culture -EQ $Lang
     }
 
-    [bool] LoadDictionary ([string] $Lang, [string] $Path)
+    <#[bool] AddDictionary ([string] $Lang, [string] $Path)
     {
-        return $this.LoadDictionary($Lang, $Path, "MASTDictionary")
-    }
+        return $this.AddDictionary($Lang, $Path, "MASTDictionary")
+    }#>
     
     ## Lists all Loaded Languages
     [cultureinfo[]] GetLoadedLanguages ()
@@ -182,7 +132,7 @@ class MASTTranslator
         return ($this.GetLoadedLanguages() -contains $Lang)
     }
 
-    # Set Output Language
+    # Set active targetlLanguage
     [void] SetLanguage([string] $Lang)
     {
         ## Check ob korrekte Sprache
