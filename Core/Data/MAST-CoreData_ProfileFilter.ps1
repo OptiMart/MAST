@@ -36,7 +36,7 @@ param(
     [Parameter()]
     [Alias("VarName","Name")]
     [string]
-    $TempVarName = "MASTProfileFilter",
+    $TempVarName = "MASTProfileFilter1",
 
     # Switch to Force relaod of the Variable
     [switch] $Force
@@ -60,62 +60,103 @@ if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or
 
     $TempVarValue = @(
         @{
-            InitName = "Core"
+            Name = "Core Classes"
+            Header = "Core Classes"
+            Priority = 0
+            Pattern = "MAST-CoreFunc_*.ps1"
+            Scope = @("Coreclass")
+            InitName = "Core Classes"
             InitHead = "  ---  Loading Core Scripts      ---  "
             InitIncl = "MAST-CoreFunc_*.ps1"
-            InitScope = @("Core")
-            InitFile = @()
-            InitPath = @()
+            InitScope = @("Coreclass")
+            
         },
         @{
+            Name = "Core Functions"
+            Header = "Core Functions"
+            Priority = 1
+            Pattern = "MAST-CoreClass_*.ps1"
+            Scope = @("Core")
+            InitName = "Core Functions"
+            InitHead = "  ---  Loading Core Scripts      ---  "
+            InitIncl = "MAST-CoreClass_*.ps1"
+            InitScope = @("Core")
+            
+        },
+        @{
+            Name = "Global"
+            Header = "Default Scripts"
+            Priority = 10
+            Pattern = "PS_global_*.ps1"
+            Scope = @("AllUsersAllHosts","CurrentUserAllHosts","FunctionCall")
             InitName = "Global"
             InitHead = "  ---  Loading Default Scripts   ---  "
             InitIncl = "PS_global_*.ps1"
             InitScope = @("AllUsersAllHosts","CurrentUserAllHosts","FunctionCall")
-            InitFile = @()
-            InitPath = @()
         },
         @{
+            Name = "Site"
+            Header = "Site Scripts ($($MASTPath.Site))"
+            Priority = 11
+            Pattern = "PS_$($MASTPath.Site)_*.ps1"
+            Scope = @("AllUsersAllHosts","CurrentUserAllHosts")
             InitName = "Site"
             InitHead = "  ---  Loading Site Scripts      ---  $($MASTPath.Site)  "
             InitIncl = "PS_$($MASTPath.Site)_*.ps1"
             InitScope = @("AllUsersAllHosts","CurrentUserAllHosts")
-            InitFile = @()
-            InitPath = @()
         },
         @{
+            Name = "Groups"
+            Header = "Group Scripts ($("$(try{"$((Get-ItemProperty -Path $MASTPath.HKCU -ErrorAction Ignore).Gruppen);$((Get-ItemProperty -Path $MASTPath.HKLM -ErrorAction Ignore).Gruppen)"}catch{})" -Split(";") -Split(",") | %{$_.trim(" ")}))"
+            Priority = 20
+            Pattern = @("$(try{"$((Get-ItemProperty -Path $MASTPath.HKCU -ErrorAction Ignore).Gruppen);$((Get-ItemProperty -Path $MASTPath.HKLM -ErrorAction Ignore).Gruppen)"}catch{})" -Split(";") -Split(",") | %{ if ($_.Trim(" ") -gt 0) {"PS_$($_.Trim(" "))_*.ps1"} else {"---"} })
+            Scope = @("AllUsersAllHosts","CurrentUserAllHosts")
             InitName = "Groups"
             InitHead = "  ---  Loading Group Scripts     ---  $("$(try{"$((Get-ItemProperty -Path $MASTPath.HKCU -ErrorAction Ignore).Gruppen);$((Get-ItemProperty -Path $MASTPath.HKLM -ErrorAction Ignore).Gruppen)"}catch{})" -Split(";") -Split(",") | %{$_.trim(" ")})  "
             InitIncl = @("$(try{"$((Get-ItemProperty -Path $MASTPath.HKCU -ErrorAction Ignore).Gruppen);$((Get-ItemProperty -Path $MASTPath.HKLM -ErrorAction Ignore).Gruppen)"}catch{})" -Split(";") -Split(",") | %{ if ($_.Trim(" ") -gt 0) {"PS_$($_.Trim(" "))_*.ps1"} else {"---"} })
             InitScope = @("AllUsersAllHosts","CurrentUserAllHosts")
-            InitFile = @()
-            InitPath = @()
         },
         @{
+            Name = "Computer"
+            Header = "Computer Scripts"
+            Priority = 21
+            Pattern = "PS_$($env:COMPUTERNAME)_*.ps1"
+            Scope = @("AllUsersAllHosts","CurrentUserAllHosts")
             InitName = "Computer"
             InitHead = "  ---  Loading Computer Scripts  ---  $env:COMPUTERNAME  "
             InitIncl = "PS_$($env:COMPUTERNAME)_*.ps1"
             InitScope = @("AllUsersAllHosts","CurrentUserAllHosts")
-            InitFile = @()
-            InitPath = @()
         },
         @{
+            Name = "User"
+            Header = "User Scripts"
+            Priority = 22
+            Pattern = "PS_$($env:USERNAME)_*.ps1"
+            Scope = @("AllUsersAllHosts","CurrentUserAllHosts","FunctionCall")
             InitName = "User"
             InitHead = "  ---  Loading User Scripts      ---  $env:USERNAME  "
             InitIncl = "PS_$($env:USERNAME)_*.ps1"
             InitScope = @("AllUsersAllHosts","CurrentUserAllHosts","FunctionCall")
-            InitFile = @()
-            InitPath = @()
         },
         @{
+            Name = "Remote"
+            Header = "Remote Scripts"
+            Priority = 100
+            Pattern = "PS_remote_*.ps1"
+            Scope = @("RemoteProfile","n.A.")
             InitName = "Remote"
             InitHead = "  ---  Loading Remote Scripts    ---  "
             InitIncl = "PS_remote_*.ps1"
             InitScope = @("RemoteProfile","n.A.")
-            InitFile = @()
-            InitPath = @()
         }
-    ) | % { New-Object psobject -Property $_ }
+    ) | ForEach-Object -Process {
+            $TempObj = New-Object psobject -Property $_
+            $TempObj | Add-Member -MemberType NoteProperty -Name InitFile -Value @()
+            $TempObj | Add-Member -MemberType NoteProperty -Name InitPath -Value @()
+            $TempObj | Add-Member -MemberType NoteProperty -Name LoadFiles -Value @()
+            $TempObj | Add-Member -MemberType NoteProperty -Name LoadPaths -Value @()
+            Write-Output $TempObj
+        }
 
 #endregion ------------------------------------------- Inhalt der Variable ----------------------------------------------------
 

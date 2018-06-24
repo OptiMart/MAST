@@ -87,8 +87,8 @@ function Start-MASTLoader
         [Parameter(Position=0)]
         [Alias("MASTEnviron","Environment")]
         [ValidateSet("Live","Dev")]
-        [string]
-        $TempMASTEnviron = "Live"
+        [switch]
+        $TempMASTDev
     )
     Begin
     {

@@ -58,6 +58,7 @@ if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or
         Local = "$(Join-Path $env:HOMEDRIVE "MAST")"  ## Der Root-Pfad zur Offlineumgebung (wird im Loader aktualisiert)
         HKLM = "HKLM:\Software\MAST"                  ## Der Registrypfad zu den Computer Settings
         HKCU = "HKCU:\Software\MAST"                  ## Der Registrypfad zu den User Settings
+        Core = ""
         Logs = "$(Join-Path $TempMASTBasePath "Logs")"    ## Der Pfad zu den Logdateien
         Site = "$(try{                                ## Der Standortname laut Activedirectory
                     $($([System.DirectoryServices.ActiveDirectory.ActiveDirectorySite]::GetComputerSite()).Name)

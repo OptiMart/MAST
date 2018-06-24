@@ -9,13 +9,16 @@
 .NOTES
     Autor: Martin Strobl
 .SYNOPSIS
-    
+    Variable with default Text-Translations
 .DESCRIPTION
+    Variable is an Array of Hasttables like
+        Lang ... Culturecode (en-us, de-de, it)
+        Dict ... Hashtable with Tag => Text
 #>
 
 [CmdletBinding()]
 param(
-    # Name of the Path-Variable leave blank for default ($MASTPath)
+    # Name of the Path-Variable leave blank for default
     [Parameter()]
     [Alias("VarName","Name")]
     [string]

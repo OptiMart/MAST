@@ -103,7 +103,7 @@ Begin
     $TempMASTTimer += @{Name="Start";Time=Get-Date}
 
     ## Conditions for 3 sec PopUp to load Dev
-    [bool] $TempMASTDevPopup = ($env:USERNAME -match "MyUser")
+    #[bool] $TempMASTDevPopup = ($env:USERNAME -match "MyUser")
 
     #region ######## ----- Declare Constants ----- #############################
 
@@ -433,17 +433,17 @@ Process
     ##       eventually copy profile.ps1 to destinations
 
     ## Check if live or dev environment
-    $MASTEnviron = $TempMASTEnviron = Get-MASTEnvironment $TempMASTDev $TempMASTDevPopup
-    Write-Verbose "Environment: $TempMASTEnviron"
+    #$MASTEnviron = $TempMASTEnviron = Get-MASTEnvironment $TempMASTDev $TempMASTDevPopup
+    #Write-Verbose "Environment: $TempMASTEnviron"
     
     ## Check if Online
-    if (Test-Path -Path (Join-Path $TempMASTPath.Online $MASTEnviron))
+    if (Test-Path -Path $TempMASTPath.Online)
     {
         Write-Verbose "MAST is Online"
         $MASTIsOnline = $true
         $TempMASTBasePath = $TempMASTPath.Online
     }
-    elseif (Test-Path -Path (Join-Path $TempMASTPath.Local $MASTEnviron))
+    elseif (Test-Path -Path $TempMASTPath.Local)
     {
         Write-Verbose "MAST is Offline"
         $MASTIsOnline = $false
@@ -451,13 +451,13 @@ Process
     }
 
     ## Get Script for MAST-Loader
-    $TempMASTLoader = Get-MASTLoaderScript ($TempMASTEnviron -eq $MASTConstDev)
+    $TempMASTLoader = Get-MASTLoaderScript $TempMASTDev
 
     #region ######## ----- Start Loader ----- ##################################
 
-    if (Get-Variable TempMASTBasePath -ValueOnly -ErrorAction SilentlyContinue)
+    if (Get-Variable TempMASTBasePath -ValueOnly -ErrorAction Ignore)
     {
-        if (Get-Variable TempMASTLoader -ValueOnly -ErrorAction SilentlyContinue)
+        if (Get-Variable TempMASTLoader -ValueOnly -ErrorAction Ignore)
         {
             #$TempMASTPathLoader = Join-Path (Join-Path $TempMASTBasePath $TempMASTEnviron) $TempMASTLoader
             $TempMASTPathLoader = Join-Path $TempMASTBasePath "\Core\$TempMASTLoader"
@@ -504,7 +504,7 @@ End
 
     Write-Progress -Activity "*" -Completed
 
-    if ($TempMASTEnviron -eq $MASTConstDev)
+    if ($TempMASTDev)
     {
         ## if in Dev-Mode write Timing Benchmark
         $TempMASTTimer += @{Name="Finish";Time=Get-Date}
