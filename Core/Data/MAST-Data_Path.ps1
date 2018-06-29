@@ -37,7 +37,7 @@ param(
 Write-Verbose "Lade Variable $TempVarName - Force: $Force"
 
 ## Aus Performacegründen werden diese Variablen nur einmalig erzeugt
-if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or $Force) {
+if((Get-Variable -Name $TempVarName -ErrorAction Ignore) -eq $null -or $Force) {
 
 #region -------------------------------------------- Parameter der Variable ---------------------------------------------------
 
@@ -58,7 +58,7 @@ if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or
         Local = "$(Join-Path $env:HOMEDRIVE "MAST")"  ## Der Root-Pfad zur Offlineumgebung (wird im Loader aktualisiert)
         HKLM = "HKLM:\Software\MAST"                  ## Der Registrypfad zu den Computer Settings
         HKCU = "HKCU:\Software\MAST"                  ## Der Registrypfad zu den User Settings
-        Core = ""
+        Core = "$(Join-Path $TempMASTBasePath "Core")"
         Logs = "$(Join-Path $TempMASTBasePath "Logs")"    ## Der Pfad zu den Logdateien
         Site = "$(try{                                ## Der Standortname laut Activedirectory
                     $($([System.DirectoryServices.ActiveDirectory.ActiveDirectorySite]::GetComputerSite()).Name)
@@ -74,7 +74,6 @@ if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or
         Dev = "Dev"                                ## Ordner für die Entwicklungsumgebung
         Bkp = "Archive"                            ## Ordner für das Archiv
         Rel = "Release"                            ## Ordner für die zu veröffentlichen Dateien
-        Log = "Logs"                               ## Ordner für Logfiles
         Cor = "Core"                               ## Ordner mit den Corefiles
     }
 
@@ -82,8 +81,8 @@ if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or
     $TempVarMASTPathSub2 = @{
         Env = ""                                   ## Wurzelverzeichnis
         Bin = "Bin"                                ## Ordner für Dateien mit direkt ausführbaren Code
-        Cor = "Core"                               ## Ordner für Kern-Dateien
-        #Dat = "Data"                               ## Ordner für Dateien mit Variablen
+        #Cor = "Core"                               ## Ordner für Kern-Dateien
+        Dat = "Data"                               ## Ordner für Dateien mit Variablen
         Inc = "Includes"                           ## Ordner für Dateien die vom Loader gezielt geladen werden
         Lib = "Libs"                               ## Ordner für allgemeine Funktionen und Module
     }

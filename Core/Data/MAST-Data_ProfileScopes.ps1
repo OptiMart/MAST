@@ -9,26 +9,16 @@
 .NOTES
     Autor: Martin Strobl
 .SYNOPSIS
-    Variable with default Text-Translations
 .DESCRIPTION
-    Variable is an Array of Hasttables like
-        Lang ... Culturecode (en-us, de-de, it)
-        Dict ... Hashtable with Tag => Text
 #>
 
 [CmdletBinding()]
 param(
-    # Name of the Path-Variable leave blank for default
+    # Name of the Path-Variable leave blank for default ($MASTPath)
     [Parameter()]
     [Alias("VarName","Name")]
     [string]
-    $TempVarName = "TempMASTDictionaries",
-
-    # Language Filter
-    [Parameter()]
-    [Alias("Language","Filter")]
-    [string]
-    $TempVarLanguage,
+    $TempVarName = "MASTProfileScopes",
 
     # Switch to Force relaod of the Variable
     [switch] $Force
@@ -37,35 +27,26 @@ param(
 Write-Verbose "Lade Variable $TempVarName - Force: $Force"
 
 ## Aus Performacegründen werden diese Variablen nur einmalig erzeugt
-if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or $Force) {
+if((Get-Variable -Name $TempVarName -ErrorAction Ignore) -eq $null -or $Force) {
 
 #region -------------------------------------------- Parameter der Variable ---------------------------------------------------
 
-    $TempVarScope = "local"
-    $TempVarOption = [System.Management.Automation.ScopedItemOptions]::None
-    $TempVarDescription = "Variable mit den MAST Dictionary Words"
+    $TempVarScope = "global"
+    $TempVarOption = [System.Management.Automation.ScopedItemOptions]::ReadOnly
+    $TempVarDescription = "Variable mit den MAST Profilescopes"
     $TempVarVisibility = [System.Management.Automation.SessionStateEntryVisibility]::Public
 
 #endregion ----------------------------------------- Parameter der Variable ---------------------------------------------------
 
 #region ---------------------------------------------- Inhalt der Variable ----------------------------------------------------
 
-    $TempVarValue = @(
-        @{
-            Lang = "en"
-            Dict = @{
-                "Yes" = "Yes"
-                "No" = "No"
-            }
-        }
-        @{
-            Lang = "de"
-            Dict = @{
-                "Yes" = "Ja"
-                "No" = "Nein"
-            }
-        }
-    ) | Where-Object -Property Lang -Match $TempVarLanguage
+    $TempVarValue = @{
+        "AllUsersAllHosts" = "AllUsersAllHosts"
+        "AllUsersCurrentHost" = "AllUsersCurrentHost"
+        "CurrentUserAllHosts" = "CurrentUserAllHosts"
+        "CurrentUserCurrentHost" = "CurrentUserCurrentHost"
+        "RemoteProfile" = "RemoteProfile"
+    }
 
 #endregion ------------------------------------------- Inhalt der Variable ----------------------------------------------------
 

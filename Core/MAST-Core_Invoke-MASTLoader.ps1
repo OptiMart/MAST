@@ -94,36 +94,13 @@ Param(
                ParameterSetName='Development')]
     [Alias("Dev","Develope","Development")]
     [switch]
-    $TempMASTDev
+    $TempMASTDev #= $true
 )
 Begin
 {
     ## Save Time for loading time benchmark
     $TempMASTTimer = @()
     $TempMASTTimer += @{Name="Start";Time=Get-Date}
-
-    ## Conditions for 3 sec PopUp to load Dev
-    #[bool] $TempMASTDevPopup = ($env:USERNAME -match "MyUser")
-
-    #region ######## ----- Declare Constants ----- #############################
-
-    New-Variable -Name MASTConstAllUsersAllHosts -Value "AllUsersAllHosts" -Option ReadOnly -Force
-    New-Variable -Name MASTConstAllUsersCurrentHost -Value "AllUsersCurrentHost" -Option ReadOnly -Force
-    New-Variable -Name MASTConstCurrentUserAllHosts -Value "CurrentUserAllHosts" -Option ReadOnly -Force
-    New-Variable -Name MASTConstCurrentUserCurrentHost -Value "CurrentUserCurrentHost" -Option ReadOnly -Force
-    New-Variable -Name MASTConstRemoteProfile -Value "RemoteProfile" -Option ReadOnly -Force
-
-    New-Variable -Name MASTConstLive -Value "Live" -Option ReadOnly -Force
-    New-Variable -Name MASTConstDev -Value "Dev" -Option ReadOnly -Force
-
-    New-Variable -Name MASTLoaderFunction -Value "Start-MASTLoader" -Description "Name of the LoaderFunction" -Force
-
-    if ((Get-Variable MASTProfileScope -ErrorAction SilentlyContinue) -eq $null)
-    {
-        New-Variable -Name MASTProfileScope -Value @()
-    }
-
-    #endregion ##### ----- Declare Constants ----- #############################
 
     #region ######## ----- Help-Functions ----- ################################
     
@@ -202,22 +179,31 @@ Begin
         {
             ## Initialise ReturnVal
             $ReturnVal = "n.A"
+
+            $Scopes = @{
+                "AllUsersAllHosts" = "AllUsersAllHosts"
+                "AllUsersCurrentHost" = "AllUsersCurrentHost"
+                "CurrentUserAllHosts" = "CurrentUserAllHosts"
+                "CurrentUserCurrentHost" = "CurrentUserCurrentHost"
+                "RemoteProfile" = "RemoteProfile"
+            }
+
         }
         Process
         {
             switch ($ScriptPath)
             {
                 ## Return value equal to profilescope
-                "$($profile.$MASTConstAllUsersAllHosts)" { $ReturnVal = $MASTConstAllUsersAllHosts }
-                "$($profile.$MASTConstAllUsersCurrentHost)" { $ReturnVal = $MASTConstAllUsersCurrentHost }
-                "$($profile.$MASTConstCurrentUserAllHosts)" { $ReturnVal = $MASTConstCurrentUserAllHosts }
-                "$($profile.$MASTConstCurrentUserCurrentHost)" { $ReturnVal = $MASTConstCurrentUserCurrentHost }
+                "$($profile.$($Scopes.AllUsersAllHosts))" { $ReturnVal = $Scopes.AllUsersAllHosts }
+                "$($profile.$($Scopes.AllUsersCurrentHost))" { $ReturnVal = $Scopes.AllUsersCurrentHost }
+                "$($profile.$($Scopes.CurrentUserAllHosts))" { $ReturnVal = $Scopes.CurrentUserAllHosts }
+                "$($profile.$($Scopes.CurrentUserCurrentHost))" { $ReturnVal = $Scopes.CurrentUserCurrentHost }
                 default
                 {
                     ## if the Scriptpath dies not match a profilepath check other scenarios
                     if ( -not $profile -and $Host.Name -match "Remote" )
                     {
-                        $ReturnVal = $MASTConstRemoteProfile
+                        $ReturnVal = $Scopes.RemoteProfile
                     }
                     else
                     {
@@ -237,49 +223,6 @@ Begin
         {
             ## Return ProfileScope
             Write-Output $ReturnVal
-        }
-    }
-
-    function Get-MASTEnvironment
-    {
-        <#
-        .SYNOPSIS
-            Returns if use Dev or Live Environment for MAST can be enhanced for more Environments
-        #>
-        [CmdletBinding()]
-        Param(
-            [Parameter(Position=0)]
-            [bool] $UseDev,
-            [Parameter(Position=1)]
-            [bool] $UsePopup,
-            [Parameter(Position=2)]
-            [int] $Timer = 3
-        )
-        Begin
-        {
-            ## Initialise ReturnVal
-            $ReturnEnv = $MASTConstLive
-        }
-        Process
-        {
-            if ($UseDev)
-            {
-                $ReturnEnv = $MASTConstDev
-            }
-            elseif ($UsePopup)
-            {
-                $MyPopup = new-object -comobject wscript.shell
-        
-                if ($MyPopup.Popup("Load Dev-Environment?",$Timer,"Dev",4) -eq 6)
-                {
-                    $ReturnEnv = $MASTConstDev
-                }
-            }
-        }
-        End
-        {
-            ## Return ProfileScope
-            Write-Output $ReturnEnv
         }
     }
 
@@ -304,16 +247,16 @@ Begin
         {
             if ($Dev)
             {
-                $ReturnVal = "MAST-Core_Start-MASTLoader_PSv5.ps1"
+                $ReturnVal = "\Core\Loader\MAST-Loader_PSv5.ps1"
             }
             else
             {
                 switch ($PSVersionTable.PSVersion)
                 {
                     ## check which Loader to use dependant on PSVersion
-                    {$_ -ge [version]"5.0"} {$ReturnVal = "MAST-Core_Start-MASTLoader_PSv5.ps1"; break}
-                    {$_ -ge [version]"4.0"} {$ReturnVal = "MAST-Core_Start-MASTLoader_PSv4.ps1"; break}
-                    {$_ -ge [version]"2.0"} {$ReturnVal = "MAST-Core_Start-MASTLoader_PSv2.ps1"; break}
+                    {$_ -ge [version]"5.0"} {$ReturnVal = "\Core\Loader\MAST-Loader_PSv5.ps1"; break}
+                    {$_ -ge [version]"4.0"} {$ReturnVal = "\Core\Loader\MAST-Loader_PSv4.ps1"; break}
+                    {$_ -ge [version]"2.0"} {$ReturnVal = "\Core\Loader\MAST-Loader_PSv2.ps1"; break}
                     default {$ReturnVal = ""; break}
                 }
             }
@@ -397,7 +340,7 @@ Process
     $TempMASTTimer += @{Name="Start-Process";Time=Get-Date}
 
     ## Get ProfileScope
-    $MASTProfileScope += $TempMASTProfileScope = Get-MASTProfileScope -ScriptPath $MyInvocation.MyCommand.Path
+    $TempMASTProfileScope = Get-MASTProfileScope -ScriptPath $MyInvocation.MyCommand.Path
     Write-Verbose "ProfileScope: $TempMASTProfileScope"
 
     ## Load Paths
@@ -426,6 +369,7 @@ Process
             ## ToDo: Load different Paths
         }
     }
+
     Write-Verbose "PathOnline: $($TempMASTPath.Online)"
     Write-Verbose "PathLocal: $($TempMASTPath.Local)"
 
@@ -460,10 +404,10 @@ Process
         if (Get-Variable TempMASTLoader -ValueOnly -ErrorAction Ignore)
         {
             #$TempMASTPathLoader = Join-Path (Join-Path $TempMASTBasePath $TempMASTEnviron) $TempMASTLoader
-            $TempMASTPathLoader = Join-Path $TempMASTBasePath "\Core\$TempMASTLoader"
+            $TempMASTPathLoader = Join-Path $TempMASTBasePath $TempMASTLoader
 
-            if (Test-Path -Path $TempMASTPathLoader) {
-                
+            if (Test-Path -Path $TempMASTPathLoader)
+            {
                 ## Get Time for loading time benchmark
                 $TempMASTTimer += @{Name="Start-Loader";Time=Get-Date}
                 
@@ -480,14 +424,16 @@ Process
                 if (Get-Command $MASTLoaderFunction -ErrorAction SilentlyContinue)
                 {
                     ## if the Loader was encapsulated in a function, call it now with parameters
-                    . $MASTLoaderFunction -MASTBasePath $TempMASTBasePath -MASTProfileScope $TempMASTProfileScope
+                    . $MASTLoaderFunction -MASTBasePath $TempMASTBasePath -MASTProfileScope $TempMASTProfileScope -MASTDev:$TempMASTDev
                 }
             }
-            else {
+            else
+            {
                 Write-Host "   !!! The determined MAST-Loader ($TempMASTPathLoader) could not be found !!!   " -BackgroundColor Red -ForegroundColor Yellow
             }
         }
-        else {
+        else
+        {
             Write-Host "   !!! No MAST-Loader could be determined !!!   " -BackgroundColor Red -ForegroundColor Yellow
         }
     }

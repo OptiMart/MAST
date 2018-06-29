@@ -85,7 +85,7 @@ Write-Progress -Activity $MyInvocation.MyCommand -Status "Initialisiere Variable
 
 ## Laden der Pfadvariable $MASTBasePath
 Write-Progress -Activity $MyInvocation.MyCommand -Status "Initialisiere Variablen" -CurrentOperation '$MASTPath' -PercentComplete 12
-. (Join-Path $PSScriptRoot "MAST-CoreData_Path.ps1")
+. (Join-Path $TempMASTBasePath "\Core\Data\MAST-CoreData_Path.ps1") -MASTBasePath $TempMASTBasePath -Force -Verbose:($PSBoundParameters['Verbose'] -eq $true)
 
 if ($MASTPath.Online -ne $TempMASTProfilePathOnline) {
     Write-Warning "Die Pfadvariable zur Online-Umgebung ist nicht konsistent"
@@ -99,7 +99,7 @@ if ($MASTPath.Local -ne $TempMASTProfilePathLocal) {
 
 ## Laden der Profilfiltervariable $MASTProfileFilter
 Write-Progress -Activity $MyInvocation.MyCommand -Status "Initialisiere Variablen" -CurrentOperation '$MASTProfileFilter' -PercentComplete 15
-. (Join-Path $PSScriptRoot "MAST-CoreData_ProfileFilter.ps1")
+. (Join-Path $TempMASTBasePath "\Core\Data\MAST-CoreData_ProfileFilter.ps1") -Force -Verbose:($PSBoundParameters['Verbose'] -eq $true)
 
 ## Skriptvariablen als allgemeine PS-Variablen übernehmen
 $MASTLoaderVersion = $TempMASTLoaderVersion
@@ -114,7 +114,7 @@ $MASTDebugLevel = 0                                              ## Ein Regler u
 #region ############################# ----- Starte robocopy des aktuellen LiveEnv ----- #######################################
 Write-Progress -Activity $MyInvocation.MyCommand -Status "Starte Copy-Job" -PercentComplete 20
 
-if ($MASTIsOnline -and $TempMASTProfileScope -match "AllUsersAllHosts") {
+<#if ($MASTIsOnline -and $TempMASTProfileScope -match "AllUsersAllHosts") {
     ## ToDo, Berechtigungsthemen überprüfen
     
     if (Test-Path $MASTPath.Local) {
@@ -126,15 +126,15 @@ if ($MASTIsOnline -and $TempMASTProfileScope -match "AllUsersAllHosts") {
         param($source, $destination)
         robocopy $source $destination /MIR
     } | Out-Null
-}
+}#>
 #endregion
 
 #region ############ ----- Laden der Profil-Filter und verarbeiten der zugeordneten Include-Dateien ----- #####################
 
-Write-Host "Powershell $($PSVersionTable.PSVersion) | $($MyInvocation.MyCommand) [$MASTProfileScope] $MASTEnviron v$MASTLoaderVersion"
+Write-Host "Powershell $($PSVersionTable.PSVersion) | $($MyInvocation.MyCommand) [$MASTProfileScope] Liv v$MASTLoaderVersion"
 Write-Progress -Activity $MyInvocation.MyCommand -Status "Nachladen Benutzerskripte" -PercentComplete 30
 
-$TempMASTProfileFilter = $MASTProfileFilter | Where-Object {$_.InitScope -Match $MASTProfileScope -or $_.InitName -eq "Core"}
+$TempMASTProfileFilter = $MASTProfileFilter | Where-Object {$_.InitScope -Match $MASTProfileScope -or $_.InitScope -eq "Core"}
 $TempMASTFilterCount = 0
 
 foreach ($TempMASTFilter in $TempMASTProfileFilter) {
@@ -142,11 +142,11 @@ foreach ($TempMASTFilter in $TempMASTProfileFilter) {
     Write-Progress -Activity $MyInvocation.MyCommand -Status "Nachladen Benutzerskripte $($TempMASTFilter.InitName)" -CurrentOperation "ermittle Dateien" -PercentComplete (30+(($TempMASTFilterCount-0.5)/$TempMASTProfileFilter.Count)*60)
 
     ## Initialisiere die Pfade zu den Filtern
-    if ($TempMASTFilter.InitName -eq "Core") {
-        $TempMASTFilter.InitPath = $MASTPath.$MASTEnviron.Cor
+    if ($TempMASTFilter.InitScope -eq "Core") {
+        $TempMASTFilter.InitPath = $MASTPath.Cor.Lib
     }
     else {
-        $TempMASTFilter.InitPath = $MASTPath.$MASTEnviron.Inc
+        $TempMASTFilter.InitPath = $MASTPath.Liv.Inc
     }
 
     ## Ermitteln der Dateien
@@ -187,7 +187,7 @@ foreach ($TempMASTFilter in $TempMASTProfileFilter) {
             Select-Object Name,Verb,Noun,@{
                 Name="Source";
                 Expression={
-                    if ($TempMASTFile.BaseName -match "^MAST-CoreFunc_") {"Kernfunktion"}
+                    if ($TempMASTFile.BaseName -match "^MAST-Func_") {"Corefunction"}
                     else {"$($TempMASTFile.BaseName)"}}}
     }
 }
@@ -204,15 +204,15 @@ if ($MASTAdminHelp -or $Host.Name -match "ISE" -or $MASTProfileScope -match "Rem
         $MASTProfileFilter | Where-Object {$_.InitScope -Match $MASTProfileScope} | % {
             Write-Host "$($_.InitHead)" -ForegroundColor Black -BackgroundColor Green
             $_.InitFile | % {
-                Write-Host "  [Including $($_.FullName -Replace [regex]::Escape($MASTPath.$MASTEnviron.Inc), "... " )]" -ForegroundColor Green
+                Write-Host "  [Including $($_.FullName -Replace [regex]::Escape($MASTPath.Liv.Inc), "... " )]" -ForegroundColor Green
             }
         }
     }
 
     ## Anzahl geladener Funktionen ermitteln
     $TempMASTFuncAll = ($MASTUserFunctions | Select-Object -Unique Name | Measure-Object).Count
-    $TempMASTFuncCore = ($MASTUserFunctions | Where-Object {$_.Source -match "Kernfunktion"} | Select-Object -Unique Name | Measure-Object).Count
-    $TempMASTFuncUser = ($MASTUserFunctions | Where-Object {$_.Source -notmatch "Kernfunktion"} | Select-Object -Unique Name | Measure-Object).Count
+    $TempMASTFuncCore = ($MASTUserFunctions | Where-Object {$_.Source -match "Corefunction"} | Select-Object -Unique Name | Measure-Object).Count
+    $TempMASTFuncUser = ($MASTUserFunctions | Where-Object {$_.Source -notmatch "Corefunction"} | Select-Object -Unique Name | Measure-Object).Count
 
     ## Infotext Ausgabe über die nachgeladenen Funktionen
     Write-Host "---------------------------------------------------------------------"

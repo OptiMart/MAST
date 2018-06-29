@@ -20,18 +20,17 @@
 
 #Requires -Version 5.0
 
-## The Name of the Loader-Function kann be set to the $MASTLoaderFunction
-## if its different to the default value "Start-MASTLoader"
-## to be correctly called from the profile.ps1
-
-<#try
+try
 {
+    ## The Name of the Loader-Function must be set to the $MASTLoaderFunction Variable
+    ## to be correctly called from the profile.ps1
+    
     Set-Variable -Name MASTLoaderFunction -Value "Start-MASTLoader" -Force -ErrorAction Stop
 }
 catch
 {
     throw "Couldn't set the Name of the MASTLoaderFunction"
-}#>
+}
 
 function Start-MASTLoader
 {
@@ -70,23 +69,22 @@ function Start-MASTLoader
             -) Ermitteln aller neu zur Verfügung stehenden Funktionen
         -) Ausgabe eventueller Zusatzinfos ($MASTAdminHelp/$MASTDebugLevel)
     #>
-    [CmdletBinding(DefaultParameterSetName = 'LoadSilent',
+    [CmdletBinding(DefaultParameterSetName = 'Default',
                    HelpUri = '')]
     Param(
         # Rootpath to MAST-Repository
         [Parameter()]
         [Alias("MASTBasePath","BasePath")]
         [string]
-        $TempMASTBasePath = (Split-Path -Path $PSScriptRoot -Parent),
+        $TempMASTBasePath = ($PSScriptRoot | Split-Path -Parent | Split-Path -Parent),
 
         [Parameter()]
         [Alias("ProfileScope","Scope","MASTProfileScope")]
         [string]
         $TempMASTProfileScope = "FunctionCall",
 
-        [Parameter(Position=0)]
-        [Alias("MASTEnviron","Environment")]
-        [ValidateSet("Live","Dev")]
+        [Parameter()]
+        [Alias("MASTDev","Dev")]
         [switch]
         $TempMASTDev
     )
@@ -108,7 +106,7 @@ function Start-MASTLoader
         
         Write-Progress -Activity $TempMASTLoaderName -Status "Check vorhandene Instanzen" -PercentComplete 5
 
-        . (Join-Path $TempMASTBasePath "\Core\Bin\MAST-Core_Check-MASTLoaderVersion.ps1")
+        . (Join-Path $TempMASTBasePath "\Core\Bin\MAST-Func_Check-MASTLoaderVersion.ps1")
         
         $ContinueLoading = Check-MASTLoaderVersion -Version $TempMASTLoaderVersion -Scope $TempMASTProfileScope -Output:($TempMASTEnviron -match "^Dev") -Verbose:($PSBoundParameters['Verbose'] -eq $true)
         
@@ -124,13 +122,28 @@ function Start-MASTLoader
         
         #endregion
 
+        #region ###################################### ----- Ermittle Environment ----- ###############################################
+        
+        ## ToDo ... mittels Function ermitteln (Globale Variable)
+
+        if ($TempMASTDev)
+        {
+            $TempMASTEnviron = "Dev"
+        }
+        else
+        {
+            $TempMASTEnviron = "Liv"
+        }
+
+        #endregion
+
         #region ############################# ----- Initialisierung der Umgebungsvariablen ----- ######################################
         
         Write-Progress -Activity $TempMASTLoaderName -Status "Initialisiere Variablen" -PercentComplete 10
 
         ## Laden der Pfadvariable $MASTPath
         Write-Progress -Activity $TempMASTLoaderName -Status "Initialisiere Variablen" -CurrentOperation '$MASTPath' -PercentComplete 12
-        . (Join-Path $TempMASTBasePath "\Core\Data\MAST-CoreData_Path.ps1") -MASTBasePath $TempMASTBasePath -Force -Verbose:($PSBoundParameters['Verbose'] -eq $true)
+        . (Join-Path $TempMASTBasePath "\Core\Data\MAST-Data_Path.ps1") -MASTBasePath $TempMASTBasePath -Force -Verbose:($PSBoundParameters['Verbose'] -eq $true)
 
         if ($MASTPath.Online -ne $TempMASTPath.Online) {
             Write-Warning "Die Pfadvariable zur Online-Umgebung ist nicht konsistent"
@@ -143,7 +156,7 @@ function Start-MASTLoader
 
         ## Laden der Profilfiltervariable $MASTProfileFilter
         Write-Progress -Activity $TempMASTLoaderName -Status "Initialisiere Variablen" -CurrentOperation '$MASTProfileFilter' -PercentComplete 15
-        . (Join-Path $TempMASTBasePath "\Core\Data\MAST-CoreData_ProfileFilter.ps1") -Force -Verbose:($PSBoundParameters['Verbose'] -eq $true)
+        . (Join-Path $TempMASTBasePath "\Core\Data\MAST-Data_ProfileFilter.ps1") -Force -Verbose:($PSBoundParameters['Verbose'] -eq $true)
 
         ## Skriptvariablen als allgemeine PS-Variablen übernehmen
         #$TempMASTProfileScope = $TempMASTProfileScope
@@ -177,7 +190,7 @@ function Start-MASTLoader
         Write-Host "Powershell $($PSVersionTable.PSVersion) | $($TempMASTLoaderName) [$TempMASTProfileScope] $TempMASTEnviron v$TempMASTLoaderVersion"
         Write-Progress -Activity $TempMASTLoaderName -Status "Nachladen Benutzerskripte" -PercentComplete 30
 
-        $TempMASTProfileFilter = $MASTProfileFilter | Where-Object {$_.InitScope -Match $TempMASTProfileScope -or $_.InitName -eq "Core"}
+        $TempMASTProfileFilter = $MASTProfileFilter | Where-Object {$_.InitScope -Match $TempMASTProfileScope -or $_.InitScope -match "^Core"}
         $TempMASTFilterCount = 0
 
         foreach ($TempMASTFilter in $TempMASTProfileFilter) {
@@ -185,7 +198,7 @@ function Start-MASTLoader
             Write-Progress -Activity $TempMASTLoaderName -Status "Nachladen Benutzerskripte $($TempMASTFilter.InitName)" -CurrentOperation "ermittle Dateien" -PercentComplete (30+(($TempMASTFilterCount-0.5)/$TempMASTProfileFilter.Count)*60)
 
             ## Initialisiere die Pfade zu den Filtern
-            if ($TempMASTFilter.InitName -eq "Core") {
+            if ($TempMASTFilter.InitScope -match "^Core") {
                 $TempMASTFilter.InitPath = $MASTPath.Cor.Lib
             }
             else {
@@ -230,7 +243,7 @@ function Start-MASTLoader
                     Select-Object Name,Verb,Noun,@{
                         Name="Source";
                         Expression={
-                            if ($TempMASTFile.BaseName -match "^MAST-CoreFunc_") {"Corefunction"}
+                            if ($TempMASTFile.BaseName -match "^MAST-Func_") {"Corefunction"}
                             else {"$($TempMASTFile.BaseName)"}}}
             }
         }
@@ -274,12 +287,6 @@ function Start-MASTLoader
                         $TempMASTAddonMenu1Root = $TempMASTAddonGroup1Root.Submenus.Add($TempMASTAddonMenu1,[scriptblock]::Create($TempMASTAddonMenu1),$null)
                     }
                 }
-
-                #Copy-Item -Path "C:\Users\viatstma\source\repos\MASTAddon\MASTAddon\bin\Debug\MASTAddon.dll" -Destination C:\Daten\MASTAddon.dll
-                #Add-Type -Path C:\Daten\MASTAddon.dll
-                #$MASTAddon = $psISE.CurrentPowerShellTab.VerticalAddOnTools.Add("MAST Addon",[MASTAddon.AddonTool],$true)
-        
-                #$MASTAddon.Control.RegisterFunction($MASTUserFunctions)
             }
 
             ## Anzahl geladener Funktionen ermitteln

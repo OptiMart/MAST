@@ -36,7 +36,7 @@ param(
     [Parameter()]
     [Alias("VarName","Name")]
     [string]
-    $TempVarName = "MASTProfileFilter1",
+    $TempVarName = "MASTProfileFilter",
 
     # Switch to Force relaod of the Variable
     [switch] $Force
@@ -45,7 +45,7 @@ param(
 Write-Verbose "Lade Variable $TempVarName - Force: $Force"
 
 ## Aus Performacegründen werden diese Variablen nur einmalig erzeugt
-if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or $Force) {
+if((Get-Variable -Name $TempVarName -ErrorAction Ignore) -eq $null -or $Force) {
 
 #region -------------------------------------------- Parameter der Variable ---------------------------------------------------
 
@@ -63,11 +63,11 @@ if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or
             Name = "Core Classes"
             Header = "Core Classes"
             Priority = 0
-            Pattern = "MAST-CoreFunc_*.ps1"
+            Pattern = "MAST-Class_*.ps1"
             Scope = @("Coreclass")
             InitName = "Core Classes"
             InitHead = "  ---  Loading Core Scripts      ---  "
-            InitIncl = "MAST-CoreFunc_*.ps1"
+            InitIncl = "MAST-Class_*.ps1"
             InitScope = @("Coreclass")
             
         },
@@ -75,11 +75,11 @@ if((Get-Variable -Name $TempVarName -ErrorAction SilentlyContinue) -eq $null -or
             Name = "Core Functions"
             Header = "Core Functions"
             Priority = 1
-            Pattern = "MAST-CoreClass_*.ps1"
+            Pattern = "MAST-Func_*.ps1"
             Scope = @("Core")
             InitName = "Core Functions"
             InitHead = "  ---  Loading Core Scripts      ---  "
-            InitIncl = "MAST-CoreClass_*.ps1"
+            InitIncl = "MAST-Func_*.ps1"
             InitScope = @("Core")
             
         },
